@@ -796,7 +796,7 @@ function TaskForm({ form, setForm, editing, saving, error, onSave, onClose, onTo
         }}>
           <button onClick={onClose} style={{ flex: 1, ...styles.secondaryBtn }}>Cancel</button>
           <button onClick={onSave} disabled={saving || !form.title?.trim()} style={{
-            flex: 2, padding: '14px', borderRadius: 12, border: 'none',
+            flex: 1, padding: '14px', borderRadius: 12, border: 'none',
             background: saving || !form.title?.trim() ? 'rgba(108,142,255,0.3)' : 'linear-gradient(135deg, #6C8EFF, #818CF8)',
             color: '#fff', fontWeight: 800, fontSize: 15,
             cursor: saving || !form.title?.trim() ? 'not-allowed' : 'pointer',
