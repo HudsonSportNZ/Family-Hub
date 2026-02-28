@@ -11,8 +11,10 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-const TODAY = new Date().toISOString().split('T')[0]
 const NZ_TZ = 'Pacific/Auckland'
+function getToday(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: NZ_TZ })
+}
 
 type Member = 'M' | 'D' | 'I' | 'J'
 
@@ -97,7 +99,7 @@ function isTaskDueToday(task: Task): boolean {
     case 'weekly':  return (task.recurrence_days ?? []).includes(dow)
     case 'monthly': return task.recurrence_day_of_month === dom
     case 'custom':  return true
-    case 'once':    return task.due_date === TODAY
+    case 'once':    return task.due_date === getToday()
     default:        return false
   }
 }
@@ -151,7 +153,7 @@ export default function Dashboard() {
     const fetchTasks = async () => {
       const [{ data: taskData }, { data: completionData }] = await Promise.all([
         supabase.from('tasks').select('*'),
-        supabase.from('task_completions').select('*').eq('completed_for_date', TODAY),
+        supabase.from('task_completions').select('*').eq('completed_for_date', getToday()),
       ])
       setTasks((taskData as Task[]) ?? [])
       setCompletions((completionData as Completion[]) ?? [])
