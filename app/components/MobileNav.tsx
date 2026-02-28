@@ -1,9 +1,10 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 
-const navItems = [
+const ALL_NAV_ITEMS = [
   { id: 'tasks',    icon: '✅', label: 'Tasks',    href: '/tasks'  },
   { id: 'schedule', icon: '📅', label: 'Calendar', href: '/calendar' },
   { id: 'meals',    icon: '🍴', label: 'Food',     href: null      },
@@ -12,6 +13,18 @@ const navItems = [
 
 export default function MobileNav() {
   const pathname = usePathname()
+  const [role, setRole] = useState<string | null>(null)
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('familyUser')
+      if (stored) setRole(JSON.parse(stored).role)
+    } catch { /* ignore */ }
+  }, [])
+
+  const navItems = role === 'kid'
+    ? ALL_NAV_ITEMS.filter(item => item.id !== 'money')
+    : ALL_NAV_ITEMS
 
   const getActiveId = () => {
     if (pathname === '/') return 'home'

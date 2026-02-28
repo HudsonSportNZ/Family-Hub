@@ -132,6 +132,19 @@ export default function Dashboard() {
   const [activeMember, setActiveMember] = useState('M')
   const [todayEvents, setTodayEvents] = useState<CalendarEvent[]>([])
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
+  const [currentUser, setCurrentUser] = useState<{ name: string; role: string } | null>(null)
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('familyUser')
+      if (stored) setCurrentUser(JSON.parse(stored))
+    } catch { /* ignore */ }
+  }, [])
+
+  const handleSwitchUser = () => {
+    localStorage.removeItem('familyUser')
+    window.location.href = '/login'
+  }
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -276,26 +289,24 @@ export default function Dashboard() {
         }
         .dash-date { font-size: 12px; color: var(--muted); margin-top: 3px; }
         .dash-header-right { display: flex; gap: 8px; align-items: center; }
+        .user-chip {
+          display: flex; align-items: center; gap: 6px;
+          background: var(--card); border: 1px solid var(--border);
+          border-radius: 20px; padding: 3px 10px 3px 4px;
+          cursor: pointer; transition: all 0.2s;
+        }
+        .user-chip:hover { border-color: var(--border2); background: var(--card2); }
+        .user-chip-av {
+          width: 24px; height: 24px; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 10px; font-weight: 800; color: white;
+          font-family: 'Syne', sans-serif; flex-shrink: 0;
+        }
+        .user-chip-name {
+          font-size: 12px; font-weight: 600; color: var(--muted);
+          font-family: 'Inter', sans-serif;
+        }
 
-        .live-pill {
-          display: flex; align-items: center; gap: 4px;
-          background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.2);
-          color: var(--green); padding: 4px 10px; border-radius: 20px;
-          font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
-        }
-        .live-dot { width: 5px; height: 5px; background: var(--green); border-radius: 50%; animation: blink 2s infinite; }
-        @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
-
-        .notif-btn {
-          width: 32px; height: 32px; background: var(--card); border: 1px solid var(--border);
-          border-radius: 10px; display: flex; align-items: center; justify-content: center;
-          font-size: 14px; position: relative; cursor: pointer;
-        }
-        .notif-dot {
-          position: absolute; top: 4px; right: 4px;
-          width: 6px; height: 6px; background: var(--red);
-          border-radius: 50%; border: 1.5px solid var(--bg);
-        }
 
         /* ── FAMILY BAR ── */
         .family-bar {
@@ -508,14 +519,25 @@ export default function Dashboard() {
             <div className="dash-header">
               <div className="dash-header-top">
                 <div>
-                  <div className="dash-greeting" suppressHydrationWarning>{getGreeting()} 👋</div>
+                  <div className="dash-greeting" suppressHydrationWarning>
+                    {currentUser ? `Hi ${currentUser.name} 👋` : `${getGreeting()} 👋`}
+                  </div>
                   <div className="dash-date" suppressHydrationWarning>
                     {new Date().toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'long' })}
                   </div>
                 </div>
                 <div className="dash-header-right">
-                  <div className="live-pill"><div className="live-dot" /> Live</div>
-                  <div className="notif-btn">🔔<div className="notif-dot" /></div>
+                  {currentUser && (
+                    <div className="user-chip" onClick={handleSwitchUser} title="Switch user">
+                      <div
+                        className="user-chip-av"
+                        style={{ background: FAMILY.find(f => f.label === currentUser.name)?.color ?? '#6C8EFF' }}
+                      >
+                        {currentUser.name[0]}
+                      </div>
+                      <span className="user-chip-name">{currentUser.name}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
