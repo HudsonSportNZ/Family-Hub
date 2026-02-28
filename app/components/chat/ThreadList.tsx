@@ -106,6 +106,7 @@ export default function ThreadList() {
       name,
       subtitle: undefined as string | undefined,
       avatarText: PEOPLE[name].initial,
+      avatarImage: undefined as string | undefined,
       gradient: PEOPLE[name].gradient,
     })),
   ]
