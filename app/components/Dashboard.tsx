@@ -372,9 +372,10 @@ export default function Dashboard() {
             gap: 14px;
             overflow-y: auto;
             overflow-x: hidden;
-            /* room for bottom bar */
-            padding-bottom: calc(var(--bottom-bar) + 16px);
+            /* room for bottom bar + notch safe area */
+            padding-bottom: calc(var(--bottom-bar) + 16px + env(safe-area-inset-bottom));
             height: 100vh;
+            height: 100dvh;
           }
 
           /* Mobile topbar */
@@ -406,6 +407,7 @@ export default function Dashboard() {
             gap: 8px;
             margin-bottom: 14px;
             flex-shrink: 0;
+            overflow-x: auto;
           }
           .member-pill {
             display: flex;
@@ -431,6 +433,9 @@ export default function Dashboard() {
 
           .today-card { padding: 12px; }
           .card-name { font-size: 13px; }
+
+          /* Hide desktop ring chart on mobile */
+          .goals-desktop { display: none; }
 
           /* Goals — horizontal scroll on mobile */
           .goals-scroll {
@@ -678,7 +683,7 @@ export default function Dashboard() {
                 <div className="ph-action">View all</div>
               </div>
               {/* Desktop goals */}
-              <div className="pb" style={{justifyContent:'center'}}>
+              <div className="pb goals-desktop" style={{justifyContent:'center'}}>
                 <div style={{display:'flex',alignItems:'center',gap:16,flex:1}}>
                   <div className="metric-ring">
                     <svg width="76" height="76" viewBox="0 0 76 76">
