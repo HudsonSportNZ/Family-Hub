@@ -10,8 +10,9 @@ const supabase = createClient(
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Member = 'M' | 'D' | 'I' | 'J'
-type Recurrence = 'once' | 'daily' | 'weekly' | 'monthly' | 'custom'
+type Recurrence = 'once' | 'daily' | 'weekly' | 'monthly'
 type Priority = 'low' | 'normal' | 'high'
+type PriorityFilter = 'all' | 'high' | 'normal' | 'low'
 
 interface Task {
   id: string
@@ -21,7 +22,6 @@ interface Task {
   recurrence: Recurrence
   recurrence_days?: number[]
   recurrence_day_of_month?: number
-  recurrence_custom_label?: string
   due_date?: string
   due_time?: string
   start_date: string
@@ -49,12 +49,14 @@ const MEMBERS: { id: Member; name: string; color: string; bg: string }[] = [
 ]
 
 const CATEGORIES = [
-  { value: 'general', label: 'General',  icon: '📋' },
-  { value: 'chores',  label: 'Chores',   icon: '🧹' },
-  { value: 'school',  label: 'School',   icon: '🎒' },
-  { value: 'health',  label: 'Health',   icon: '❤️' },
-  { value: 'errands', label: 'Errands',  icon: '🛒' },
-  { value: 'meals',   label: 'Meals',    icon: '🍽️' },
+  { value: 'general',     label: 'General',     icon: '📋' },
+  { value: 'maintenance', label: 'Maintenance',  icon: '🔧' },
+  { value: 'chores',      label: 'Chores',       icon: '🧹' },
+  { value: 'food',        label: 'Food',         icon: '🍽️' },
+  { value: 'school',      label: 'School',       icon: '🎒' },
+  { value: 'cleaning',    label: 'Cleaning',     icon: '✨' },
+  { value: 'errands',     label: 'Errands',      icon: '🛒' },
+  { value: 'hobbies',     label: 'Hobbies',      icon: '🎨' },
 ]
 
 const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -65,30 +67,35 @@ function getMember(id: Member) {
   return MEMBERS.find(m => m.id === id)!
 }
 
-function isTaskDueToday(task: Task): boolean {
+function isTaskDueOnDate(task: Task, date: Date): boolean {
   if (!task.is_active) return false
-  const today = new Date()
-  const dayOfWeek = today.getDay()
-  const dayOfMonth = today.getDate()
-
+  const dateStr = date.toISOString().split('T')[0]
+  const dayOfWeek = date.getDay()
+  const dayOfMonth = date.getDate()
   switch (task.recurrence) {
-    case 'daily':
-      return true
+    case 'daily':   return true
     case 'weekly':
-      // FIX: if no days are set, show every day as fallback
       if (!task.recurrence_days || task.recurrence_days.length === 0) return true
       return task.recurrence_days.includes(dayOfWeek)
     case 'monthly':
-      // FIX: if no day set, show on 1st of month as fallback
       if (!task.recurrence_day_of_month) return dayOfMonth === 1
       return task.recurrence_day_of_month === dayOfMonth
-    case 'custom':
-      return true
-    case 'once':
-      return task.due_date === TODAY
-    default:
-      return false
+    case 'once':    return task.due_date === dateStr
+    default:        return false
   }
+}
+
+function isTaskDueToday(task: Task): boolean {
+  return isTaskDueOnDate(task, new Date())
+}
+
+function isTaskDueThisWeek(task: Task): boolean {
+  for (let i = 0; i < 7; i++) {
+    const d = new Date()
+    d.setDate(d.getDate() + i)
+    if (isTaskDueOnDate(task, d)) return true
+  }
+  return false
 }
 
 function recurrenceLabel(task: Task): string {
@@ -103,8 +110,7 @@ function recurrenceLabel(task: Task): string {
       return task.recurrence_day_of_month
         ? `Monthly · ${ordinal(task.recurrence_day_of_month)}`
         : 'Monthly'
-    case 'custom':
-      return task.recurrence_custom_label ?? 'Custom'
+    default:        return 'Recurring'
   }
 }
 
@@ -125,7 +131,6 @@ function blankTask(): Partial<Task> {
     recurrence: 'once',
     recurrence_days: [],
     recurrence_day_of_month: undefined,
-    recurrence_custom_label: '',
     due_date: TODAY,
     due_time: '',
     start_date: TODAY,
@@ -141,8 +146,10 @@ export default function TasksModule() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [completions, setCompletions] = useState<TaskCompletion[]>([])
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<'today' | 'all' | 'by-member'>('today')
+  const [view, setView] = useState<'today' | 'week'>('today')
+  const [showCompleted, setShowCompleted] = useState(false)
   const [filterMember, setFilterMember] = useState<Member | null>(null)
+  const [filterPriority, setFilterPriority] = useState<PriorityFilter>('all')
   const [showForm, setShowForm] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [form, setForm] = useState<Partial<Task>>(blankTask())
@@ -187,7 +194,6 @@ export default function TasksModule() {
     setSaving(true)
     setError(null)
 
-    // FIX: ensure assigned_to is always a proper array of strings
     const assignedTo = (form.assigned_to ?? []).filter(Boolean)
 
     const payload = {
@@ -195,10 +201,8 @@ export default function TasksModule() {
       description: form.description?.trim() || null,
       assigned_to: assignedTo,
       recurrence: form.recurrence ?? 'once',
-      // FIX: only include recurrence sub-fields when relevant
       recurrence_days: form.recurrence === 'weekly' ? (form.recurrence_days ?? []) : null,
       recurrence_day_of_month: form.recurrence === 'monthly' ? (form.recurrence_day_of_month ?? null) : null,
-      recurrence_custom_label: form.recurrence === 'custom' ? (form.recurrence_custom_label?.trim() ?? null) : null,
       due_date: form.recurrence === 'once' ? (form.due_date ?? TODAY) : null,
       due_time: form.due_time?.trim() || null,
       start_date: form.start_date ?? TODAY,
@@ -208,13 +212,10 @@ export default function TasksModule() {
       icon: form.icon ?? '✓',
     }
 
-    console.log('Saving task payload:', payload)
-
     if (editingTask) {
       const { data, error: updateError } = await supabase
         .from('tasks').update(payload).eq('id', editingTask.id).select().single()
       if (updateError) {
-        console.error('Update error:', updateError)
         setError(`Save failed: ${updateError.message}`)
       } else if (data) {
         setTasks(prev => prev.map(t => t.id === editingTask.id ? data as Task : t))
@@ -224,7 +225,6 @@ export default function TasksModule() {
       const { data, error: insertError } = await supabase
         .from('tasks').insert(payload).select().single()
       if (insertError) {
-        console.error('Insert error:', insertError)
         setError(`Save failed: ${insertError.message}`)
       } else if (data) {
         setTasks(prev => [data as Task, ...prev])
@@ -267,7 +267,6 @@ export default function TasksModule() {
     setError(null)
   }
 
-  // FIX: robust toggle that works correctly with string comparison
   const toggleFormMember = (m: Member) => {
     setForm(prev => {
       const current = prev.assigned_to ?? []
@@ -291,12 +290,24 @@ export default function TasksModule() {
   }
 
   const todayTasks = tasks.filter(isTaskDueToday)
+  const weekTasks = tasks.filter(isTaskDueThisWeek)
+  const basePool = view === 'today' ? todayTasks : weekTasks
 
-  const filteredTasks = (view === 'today' ? todayTasks : tasks).filter(t => {
-    if (filterMember && !t.assigned_to.includes(filterMember)) return false
-    if (activeCategory !== 'all' && t.category !== activeCategory) return false
-    return true
-  })
+  const PRIORITY_ORDER: Record<Priority, number> = { high: 0, normal: 1, low: 2 }
+
+  const filteredTasks = basePool
+    .filter(t => {
+      const done = isCompleted(t.id)
+      if (showCompleted !== done) return false
+      if (filterMember && !t.assigned_to.includes(filterMember)) return false
+      if (activeCategory !== 'all' && t.category !== activeCategory) return false
+      if (!showCompleted && filterPriority !== 'all' && t.priority !== filterPriority) return false
+      return true
+    })
+    .sort((a, b) => {
+      if (showCompleted) return 0
+      return PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
+    })
 
   const completedCount = todayTasks.filter(t => isCompleted(t.id)).length
 
@@ -329,17 +340,45 @@ export default function TasksModule() {
         </div>
       )}
 
-      {/* View tabs */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        {(['today', 'all', 'by-member'] as const).map(v => (
+      {/* View tabs + Completed toggle */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        {(['today', 'week'] as const).map(v => (
           <button key={v} onClick={() => setView(v)} style={{ ...styles.tab, ...(view === v ? styles.tabActive : {}) }}>
-            {v === 'today' ? '📅 Today' : v === 'all' ? '📋 All Tasks' : '👨‍👩‍👧‍👦 By Member'}
+            {v === 'today' ? '📅 Today' : '📆 This Week'}
           </button>
         ))}
+        <div style={{ flex: 1 }} />
+        <button
+          onClick={() => setShowCompleted(!showCompleted)}
+          style={{
+            ...styles.tab,
+            ...(showCompleted ? { border: '1.5px solid #34D399', background: 'rgba(52,211,153,0.1)', color: '#34D399' } : {}),
+          }}
+        >
+          ✓ Completed
+        </button>
       </div>
 
+      {/* Priority filter */}
+      {!showCompleted && (
+        <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+          {(['all', 'high', 'normal', 'low'] as PriorityFilter[]).map(p => {
+            const isActive = filterPriority === p
+            const col = p === 'all' ? '#6C8EFF' : priorityColor(p as Priority)
+            return (
+              <button key={p} onClick={() => setFilterPriority(p)} style={{
+                ...styles.chip,
+                ...(isActive ? { border: `1.5px solid ${col}`, background: `${col}20`, color: col } : {}),
+              }}>
+                {p === 'all' ? 'All' : p === 'high' ? '🔴 High' : p === 'normal' ? '🔵 Normal' : '⚫ Low'}
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       {/* Category filter */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 16, overflowX: 'auto', paddingBottom: 4 }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12, overflowX: 'auto', paddingBottom: 4 }}>
         <button onClick={() => setActiveCategory('all')} style={{ ...styles.chip, ...(activeCategory === 'all' ? styles.chipActive : {}) }}>All</button>
         {CATEGORIES.map(c => (
           <button key={c.value} onClick={() => setActiveCategory(c.value)} style={{ ...styles.chip, ...(activeCategory === c.value ? styles.chipActive : {}) }}>
@@ -349,30 +388,42 @@ export default function TasksModule() {
       </div>
 
       {/* Member filter */}
-      {view === 'by-member' && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-          {MEMBERS.map(m => (
-            <button key={m.id} onClick={() => setFilterMember(filterMember === m.id ? null : m.id)} style={{
-              padding: '6px 14px', borderRadius: 99,
-              border: `2px solid ${filterMember === m.id ? m.color : 'rgba(255,255,255,0.1)'}`,
-              background: filterMember === m.id ? m.bg : 'transparent',
-              color: filterMember === m.id ? m.color : '#94A3B8',
-              cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all 0.15s',
-            }}>
-              {m.name}
-            </button>
-          ))}
-        </div>
-      )}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+        <button
+          onClick={() => setFilterMember(null)}
+          style={{
+            padding: '6px 14px', borderRadius: 99,
+            border: `2px solid ${filterMember === null ? '#6C8EFF' : 'rgba(255,255,255,0.1)'}`,
+            background: filterMember === null ? 'rgba(108,142,255,0.15)' : 'transparent',
+            color: filterMember === null ? '#6C8EFF' : '#94A3B8',
+            cursor: 'pointer', fontSize: 13, fontWeight: 600,
+          }}
+        >
+          Everyone
+        </button>
+        {MEMBERS.map(m => (
+          <button key={m.id} onClick={() => setFilterMember(filterMember === m.id ? null : m.id)} style={{
+            padding: '6px 14px', borderRadius: 99,
+            border: `2px solid ${filterMember === m.id ? m.color : 'rgba(255,255,255,0.1)'}`,
+            background: filterMember === m.id ? m.bg : 'transparent',
+            color: filterMember === m.id ? m.color : '#94A3B8',
+            cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all 0.15s',
+          }}>
+            {m.name}
+          </button>
+        ))}
+      </div>
 
       {/* Task list */}
       {loading ? (
         <div style={{ textAlign: 'center', color: '#475569', paddingTop: 48 }}>Loading tasks…</div>
       ) : filteredTasks.length === 0 ? (
         <div style={{ textAlign: 'center', paddingTop: 48 }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>✨</div>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>{showCompleted ? '🎉' : '✨'}</div>
           <p style={{ color: '#475569', margin: 0 }}>
-            {view === 'today' ? 'Nothing due today!' : 'No tasks yet.'}
+            {showCompleted
+              ? 'No completed tasks yet.'
+              : view === 'today' ? 'Nothing due today!' : 'Nothing coming up this week!'}
           </p>
         </div>
       ) : (
@@ -460,6 +511,14 @@ function TaskCard({ task, completed, completedBy, onToggle, onEdit, onDelete, on
               <span style={{ fontSize: 10, color: '#F87171', fontWeight: 700, flexShrink: 0 }}>●</span>
             )}
           </div>
+          {task.description && (
+            <div style={{
+              fontSize: 11, color: '#64748B', marginTop: 2,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {task.description}
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 11, color: '#64748B' }}>{recurrenceLabel(task)}</span>
             {completed && completedBy && (
@@ -548,183 +607,192 @@ function TaskForm({ form, setForm, editing, saving, error, onSave, onClose, onTo
   const ICONS = ['✓', '🧹', '🎒', '🛒', '💡', '🍽️', '🐱', '❤️', '📚', '🚗', '💊', '🏃', '🌱', '📞', '🔧']
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 50,
-      background: 'rgba(0,0,0,0.7)',
-      display: 'flex', alignItems: 'flex-end',
-      backdropFilter: 'blur(4px)',
-    }} onClick={e => e.target === e.currentTarget && onClose()}>
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 50,
+        background: 'rgba(0,0,0,0.7)',
+        display: 'flex', alignItems: 'flex-end',
+        backdropFilter: 'blur(4px)',
+        overflowY: 'auto',
+      }}
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
       <div style={{
         width: '100%', maxWidth: 600, margin: '0 auto',
         background: '#0F172A', border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: '20px 20px 0 0', padding: 24,
-        maxHeight: '92vh', overflowY: 'auto',
+        borderRadius: '20px 20px 0 0',
+        display: 'flex', flexDirection: 'column',
+        maxHeight: '92vh',
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{editing ? 'Edit Task' : 'New Task'}</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', fontSize: 20 }}>✕</button>
-        </div>
-
-        {/* Error message */}
-        {error && (
-          <div style={{
-            background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)',
-            borderRadius: 10, padding: '10px 14px', marginBottom: 16,
-            color: '#F87171', fontSize: 13,
-          }}>
-            ⚠️ {error}
+        {/* Scrollable content area */}
+        <div style={{
+          overflowY: 'auto',
+          padding: '24px 24px 0',
+          flex: 1,
+          WebkitOverflowScrolling: 'touch',
+        } as React.CSSProperties}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{editing ? 'Edit Task' : 'New Task'}</h2>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', fontSize: 20 }}>✕</button>
           </div>
-        )}
 
-        {/* Title */}
-        <label style={styles.label}>Task title *</label>
-        <input
-          value={form.title ?? ''}
-          onChange={e => f('title', e.target.value)}
-          placeholder="e.g. Take bins out"
-          style={styles.input}
-          autoFocus
-        />
-
-        {/* Icon */}
-        <label style={styles.label}>Icon</label>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-          {ICONS.map(icon => (
-            <button key={icon} onClick={() => f('icon', icon)} style={{
-              width: 36, height: 36, borderRadius: 8, fontSize: 18,
-              border: `2px solid ${form.icon === icon ? '#6C8EFF' : 'rgba(255,255,255,0.1)'}`,
-              background: form.icon === icon ? 'rgba(108,142,255,0.15)' : 'transparent',
-              cursor: 'pointer',
+          {/* Error message */}
+          {error && (
+            <div style={{
+              background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)',
+              borderRadius: 10, padding: '10px 14px', marginBottom: 16,
+              color: '#F87171', fontSize: 13,
             }}>
-              {icon}
-            </button>
-          ))}
-        </div>
-
-        {/* Description */}
-        <label style={styles.label}>Description (optional)</label>
-        <input
-          value={form.description ?? ''}
-          onChange={e => f('description', e.target.value)}
-          placeholder="Any extra notes…"
-          style={styles.input}
-        />
-
-        {/* Assign to — FIX: show selected state clearly */}
-        <label style={styles.label}>Assign to</label>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          {MEMBERS.map(m => {
-            const isSelected = (form.assigned_to ?? []).includes(m.id)
-            return (
-              <button key={m.id} onClick={() => onToggleMember(m.id)} style={{
-                flex: 1, padding: '10px 4px', borderRadius: 10,
-                border: `2px solid ${isSelected ? m.color : 'rgba(255,255,255,0.1)'}`,
-                background: isSelected ? m.bg : 'transparent',
-                color: isSelected ? m.color : '#64748B',
-                cursor: 'pointer', fontWeight: 700, fontSize: 13,
-                transition: 'all 0.15s',
-              }}>
-                {isSelected ? '✓ ' : ''}{m.name}
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Category */}
-        <label style={styles.label}>Category</label>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-          {CATEGORIES.map(c => (
-            <button key={c.value} onClick={() => f('category', c.value)} style={{
-              ...styles.chip, ...(form.category === c.value ? styles.chipActive : {}),
-            }}>
-              {c.icon} {c.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Priority */}
-        <label style={styles.label}>Priority</label>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          {(['low', 'normal', 'high'] as Priority[]).map(p => (
-            <button key={p} onClick={() => f('priority', p)} style={{
-              flex: 1, padding: '8px', borderRadius: 10,
-              border: `2px solid ${form.priority === p ? priorityColor(p) : 'rgba(255,255,255,0.1)'}`,
-              background: form.priority === p ? `${priorityColor(p)}20` : 'transparent',
-              color: form.priority === p ? priorityColor(p) : '#64748B',
-              cursor: 'pointer', fontWeight: 700, fontSize: 13, textTransform: 'capitalize',
-            }}>
-              {p}
-            </button>
-          ))}
-        </div>
-
-        {/* Recurrence */}
-        <label style={styles.label}>Repeats</label>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-          {(['once', 'daily', 'weekly', 'monthly', 'custom'] as Recurrence[]).map(r => (
-            <button key={r} onClick={() => f('recurrence', r)} style={{
-              ...styles.chip, ...(form.recurrence === r ? styles.chipActive : {}),
-            }}>
-              {r === 'once' ? '1️⃣ Once' : r === 'daily' ? '☀️ Daily' : r === 'weekly' ? '📅 Weekly' : r === 'monthly' ? '🗓️ Monthly' : '⚙️ Custom'}
-            </button>
-          ))}
-        </div>
-
-        {form.recurrence === 'once' && (
-          <>
-            <label style={styles.label}>Due date</label>
-            <input type="date" value={form.due_date ?? TODAY} onChange={e => f('due_date', e.target.value)} style={styles.input} />
-          </>
-        )}
-
-        {form.recurrence === 'weekly' && (
-          <>
-            <label style={styles.label}>Which days? (leave blank for every day)</label>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-              {DAYS_SHORT.map((day, i) => (
-                <button key={i} onClick={() => onToggleDay(i)} style={{
-                  flex: 1, padding: '8px 2px', borderRadius: 8,
-                  border: `2px solid ${(form.recurrence_days ?? []).includes(i) ? '#6C8EFF' : 'rgba(255,255,255,0.1)'}`,
-                  background: (form.recurrence_days ?? []).includes(i) ? 'rgba(108,142,255,0.15)' : 'transparent',
-                  color: (form.recurrence_days ?? []).includes(i) ? '#6C8EFF' : '#64748B',
-                  cursor: 'pointer', fontSize: 11, fontWeight: 700,
-                }}>
-                  {day}
-                </button>
-              ))}
+              ⚠️ {error}
             </div>
-          </>
-        )}
+          )}
 
-        {form.recurrence === 'monthly' && (
-          <>
-            <label style={styles.label}>Day of month</label>
-            <input
-              type="number" min={1} max={31}
-              value={form.recurrence_day_of_month ?? ''}
-              onChange={e => f('recurrence_day_of_month', parseInt(e.target.value) || undefined)}
-              placeholder="e.g. 15"
-              style={styles.input}
-            />
-          </>
-        )}
+          {/* Title */}
+          <label style={styles.label}>Task title *</label>
+          <input
+            value={form.title ?? ''}
+            onChange={e => f('title', e.target.value)}
+            placeholder="e.g. Take bins out"
+            style={styles.input}
+            autoFocus
+          />
 
-        {form.recurrence === 'custom' && (
-          <>
-            <label style={styles.label}>Describe the schedule</label>
-            <input
-              value={form.recurrence_custom_label ?? ''}
-              onChange={e => f('recurrence_custom_label', e.target.value)}
-              placeholder="e.g. Every school day, Term time only"
-              style={styles.input}
-            />
-          </>
-        )}
+          {/* Icon */}
+          <label style={styles.label}>Icon</label>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+            {ICONS.map(icon => (
+              <button key={icon} onClick={() => f('icon', icon)} style={{
+                width: 36, height: 36, borderRadius: 8, fontSize: 18,
+                border: `2px solid ${form.icon === icon ? '#6C8EFF' : 'rgba(255,255,255,0.1)'}`,
+                background: form.icon === icon ? 'rgba(108,142,255,0.15)' : 'transparent',
+                cursor: 'pointer',
+              }}>
+                {icon}
+              </button>
+            ))}
+          </div>
 
-        <label style={styles.label}>Time (optional)</label>
-        <input type="time" value={form.due_time ?? ''} onChange={e => f('due_time', e.target.value)} style={styles.input} />
+          {/* Notes */}
+          <label style={styles.label}>Notes (optional)</label>
+          <textarea
+            value={form.description ?? ''}
+            onChange={e => f('description', e.target.value)}
+            placeholder="Any extra notes…"
+            rows={3}
+            style={{ ...styles.input, resize: 'none', lineHeight: '1.5' }}
+          />
 
-        <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
+          {/* Assign to */}
+          <label style={styles.label}>Assign to</label>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            {MEMBERS.map(m => {
+              const isSelected = (form.assigned_to ?? []).includes(m.id)
+              return (
+                <button key={m.id} onClick={() => onToggleMember(m.id)} style={{
+                  flex: 1, padding: '10px 4px', borderRadius: 10,
+                  border: `2px solid ${isSelected ? m.color : 'rgba(255,255,255,0.1)'}`,
+                  background: isSelected ? m.bg : 'transparent',
+                  color: isSelected ? m.color : '#64748B',
+                  cursor: 'pointer', fontWeight: 700, fontSize: 13,
+                  transition: 'all 0.15s',
+                }}>
+                  {isSelected ? '✓ ' : ''}{m.name}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Category */}
+          <label style={styles.label}>Category</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+            {CATEGORIES.map(c => (
+              <button key={c.value} onClick={() => f('category', c.value)} style={{
+                ...styles.chip, ...(form.category === c.value ? styles.chipActive : {}),
+              }}>
+                {c.icon} {c.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Priority */}
+          <label style={styles.label}>Priority</label>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            {(['low', 'normal', 'high'] as Priority[]).map(p => (
+              <button key={p} onClick={() => f('priority', p)} style={{
+                flex: 1, padding: '8px', borderRadius: 10,
+                border: `2px solid ${form.priority === p ? priorityColor(p) : 'rgba(255,255,255,0.1)'}`,
+                background: form.priority === p ? `${priorityColor(p)}20` : 'transparent',
+                color: form.priority === p ? priorityColor(p) : '#64748B',
+                cursor: 'pointer', fontWeight: 700, fontSize: 13, textTransform: 'capitalize',
+              }}>
+                {p}
+              </button>
+            ))}
+          </div>
+
+          {/* Recurrence */}
+          <label style={styles.label}>Repeats</label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+            {(['once', 'daily', 'weekly', 'monthly'] as Recurrence[]).map(r => (
+              <button key={r} onClick={() => f('recurrence', r)} style={{
+                ...styles.chip, ...(form.recurrence === r ? styles.chipActive : {}),
+              }}>
+                {r === 'once' ? '1️⃣ Once' : r === 'daily' ? '☀️ Daily' : r === 'weekly' ? '📅 Weekly' : '🗓️ Monthly'}
+              </button>
+            ))}
+          </div>
+
+          {form.recurrence === 'once' && (
+            <>
+              <label style={styles.label}>Due date</label>
+              <input type="date" value={form.due_date ?? TODAY} onChange={e => f('due_date', e.target.value)} style={styles.input} />
+            </>
+          )}
+
+          {form.recurrence === 'weekly' && (
+            <>
+              <label style={styles.label}>Which days? (leave blank for every day)</label>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+                {DAYS_SHORT.map((day, i) => (
+                  <button key={i} onClick={() => onToggleDay(i)} style={{
+                    flex: 1, padding: '8px 2px', borderRadius: 8,
+                    border: `2px solid ${(form.recurrence_days ?? []).includes(i) ? '#6C8EFF' : 'rgba(255,255,255,0.1)'}`,
+                    background: (form.recurrence_days ?? []).includes(i) ? 'rgba(108,142,255,0.15)' : 'transparent',
+                    color: (form.recurrence_days ?? []).includes(i) ? '#6C8EFF' : '#64748B',
+                    cursor: 'pointer', fontSize: 11, fontWeight: 700,
+                  }}>
+                    {day}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {form.recurrence === 'monthly' && (
+            <>
+              <label style={styles.label}>Day of month</label>
+              <input
+                type="number" min={1} max={31}
+                value={form.recurrence_day_of_month ?? ''}
+                onChange={e => f('recurrence_day_of_month', parseInt(e.target.value) || undefined)}
+                placeholder="e.g. 15"
+                style={styles.input}
+              />
+            </>
+          )}
+
+          <label style={styles.label}>Time (optional)</label>
+          <input type="time" value={form.due_time ?? ''} onChange={e => f('due_time', e.target.value)} style={styles.input} />
+        </div>
+
+        {/* Sticky action buttons */}
+        <div style={{
+          padding: '16px 24px',
+          paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          background: '#0F172A',
+          display: 'flex', gap: 10, flexShrink: 0,
+        }}>
           <button onClick={onClose} style={{ flex: 1, ...styles.secondaryBtn }}>Cancel</button>
           <button onClick={onSave} disabled={saving || !form.title?.trim()} style={{
             flex: 2, padding: '14px', borderRadius: 12, border: 'none',

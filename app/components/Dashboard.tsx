@@ -613,8 +613,13 @@ export default function Dashboard() {
                     <p>Nothing due today!</p>
                     <a href="/tasks" style={{fontSize:11, color:'var(--accent)', textDecoration:'none'}}>+ Add tasks</a>
                   </div>
+                ) : todayTasks.filter(t => !isCompleted(t.id)).length === 0 ? (
+                  <div className="empty-tasks">
+                    <span>🎉</span>
+                    <p>All done for today!</p>
+                  </div>
                 ) : (
-                  todayTasks.slice(0, 6).map(task => {
+                  todayTasks.filter(t => !isCompleted(t.id)).slice(0, 4).map(task => {
                     const done = isCompleted(task.id)
                     const primaryMember = task.assigned_to[0] as Member | undefined
                     const style = primaryMember ? MEMBER_STYLES[primaryMember] : { color: '#94A3B8', bg: 'rgba(148,163,184,0.12)', label: '–', gradient: '' }
@@ -630,9 +635,9 @@ export default function Dashboard() {
                     )
                   })
                 )}
-                {todayTasks.length > 6 && (
+                {todayTasks.filter(t => !isCompleted(t.id)).length > 4 && (
                   <a href="/tasks" style={{fontSize:11, color:'var(--muted)', textDecoration:'none', textAlign:'center', paddingTop:4}}>
-                    +{todayTasks.length - 6} more · View all
+                    +{todayTasks.filter(t => !isCompleted(t.id)).length - 4} more · View all
                   </a>
                 )}
               </div>
