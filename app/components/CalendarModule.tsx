@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import {
   format, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
@@ -106,6 +106,32 @@ function eventsForDay(events: CalendarEvent[], date: Date, filters: string[]): C
     if (filters.length === 0) return true
     return ev.members.some(m => filters.includes(m))
   })
+}
+
+function expandEvents(evts: CalendarEvent[], from: Date, to: Date): CalendarEvent[] {
+  const result: CalendarEvent[] = []
+  for (const ev of evts) {
+    result.push(ev)
+    if (!ev.recurrence || ev.recurrence === 'none') continue
+    const duration = new Date(ev.end_time).getTime() - new Date(ev.start_time).getTime()
+    let cur = new Date(ev.start_time)
+    for (let i = 1; i <= 400; i++) {
+      cur = ev.recurrence === 'daily'   ? addDays(cur, 1)
+          : ev.recurrence === 'weekly'  ? addWeeks(cur, 1)
+          : addMonths(cur, 1)
+      if (cur > to) break
+      if (cur >= from) {
+        result.push({
+          ...ev,
+          id:         `${ev.id}_r${i}`,
+          start_time: cur.toISOString(),
+          end_time:   new Date(cur.getTime() + duration).toISOString(),
+          _parentId:  ev.id,
+        })
+      }
+    }
+  }
+  return result
 }
 
 // ── SUBCOMPONENTS ──────────────────────────────────────────────────────────
@@ -271,6 +297,8 @@ function DayView({
 }
 
 // ── WEEK VIEW ──────────────────────────────────────────────────────────────
+// Shows 7 days; 3 visible at once via horizontal scroll only.
+// Time column is pinned left. Full 7am–9pm range fits without vertical scroll.
 function WeekView({
   weekStart, events, filters, onEventClick, onSlotClick, onDayHeaderClick,
 }: {
@@ -281,98 +309,170 @@ function WeekView({
   onSlotClick: (date: Date, hour: number) => void
   onDayHeaderClick: (date: Date) => void
 }) {
-  const days  = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
-  const hours = Array.from({ length: DAY_END - DAY_START }, (_, i) => DAY_START + i)
-  const gridH = (DAY_END - DAY_START) * HOUR_PX
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [containerWidth, setContainerWidth] = useState(0)
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const update = () => setContainerWidth(el.offsetWidth)
+    update()
+    const obs = new ResizeObserver(update)
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+
+  const days       = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+  const hours      = Array.from({ length: DAY_END - DAY_START }, (_, i) => DAY_START + i)
+  const TOTAL_MINS = (DAY_END - DAY_START) * 60
+  const HEADER_H   = 52
+  const colWidth   = containerWidth > 44 ? Math.floor((containerWidth - 44) / 3) : 120
+
+  // Convert minutes-from-DAY_START to a percentage of the total grid height
+  const toTop = (mins: number) => `${(mins / TOTAL_MINS) * 100}%`
 
   return (
-    <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: 'calc(100vh - 250px)' }}>
-      <div style={{ minWidth: 480 }}>
-
-        {/* Day header row */}
-        <div style={{
-          display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.08)',
-          position: 'sticky', top: 0, background: '#13151C', zIndex: 5,
-        }}>
-          <div style={{ width: 44, flexShrink: 0 }} />
-          {days.map(d => {
-            const today = isTodayNZ(d)
-            return (
-              <div
-                key={d.toISOString()}
-                onClick={() => onDayHeaderClick(d)}
-                style={{ flex: 1, textAlign: 'center', padding: '8px 2px', borderLeft: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer' }}
-              >
-                <div style={{ fontSize: 10, color: 'rgba(240,242,248,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  {format(d, 'EEE')}
-                </div>
-                <div style={{
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  width: 26, height: 26, borderRadius: '50%', marginTop: 3,
-                  background: today ? '#6C8EFF' : 'transparent',
-                  fontSize: 13, fontWeight: 700, fontFamily: "'Syne', sans-serif",
-                  color: today ? 'white' : 'rgba(240,242,248,0.85)',
-                }}>
-                  {format(d, 'd')}
-                </div>
-              </div>
-            )
-          })}
+    <div
+      ref={containerRef}
+      style={{ display: 'flex', height: 'calc(100dvh - 240px)', minHeight: 300, overflow: 'hidden' }}
+    >
+      {/* ── Pinned time column ─────────────────────────────────────────── */}
+      <div style={{
+        width: 44, flexShrink: 0, display: 'flex', flexDirection: 'column',
+        zIndex: 3, background: '#13151C',
+      }}>
+        {/* Spacer matches day-header height */}
+        <div style={{ height: HEADER_H, flexShrink: 0, borderBottom: '1px solid rgba(255,255,255,0.08)' }} />
+        {/* Time labels — percentage positioned to align with grid lines */}
+        <div style={{ flex: 1, position: 'relative' }}>
+          {hours.map((h, i) => (
+            <div key={h} style={{
+              position: 'absolute',
+              top: toTop(i * 60),
+              width: '100%', textAlign: 'right', paddingRight: 6,
+              fontSize: 9, color: 'rgba(240,242,248,0.3)',
+              transform: 'translateY(-50%)',
+              fontVariantNumeric: 'tabular-nums',
+              pointerEvents: 'none',
+            }}>
+              {h === 12 ? '12pm' : h > 12 ? `${h - 12}pm` : `${h}am`}
+            </div>
+          ))}
         </div>
+      </div>
 
-        {/* Time grid */}
-        <div style={{ display: 'flex' }}>
-          <TimeColumn />
+      {/* ── Horizontal scroll: 3 days visible, no vertical scroll ──────── */}
+      <div style={{
+        flex: 1, overflowX: 'auto', overflowY: 'hidden',
+        WebkitOverflowScrolling: 'touch',
+      } as React.CSSProperties}>
+        {/* Inner container exactly wide enough for 7 columns */}
+        <div style={{ display: 'flex', height: '100%', width: colWidth * 7 }}>
           {days.map(d => {
             const dayEvts = eventsForDay(events, d, filters).filter(e => !e.all_day)
             const laid    = layoutEvents(dayEvts)
             const today   = isTodayNZ(d)
+
+            // Current time percentage (only computed for today)
+            const nowMins = (() => {
+              if (!today) return -1
+              const { hour, minute } = getNZHourMin(new Date().toISOString())
+              return (hour - DAY_START) * 60 + minute
+            })()
+
             return (
-              <div
-                key={d.toISOString()}
-                style={{
-                  flex: 1, position: 'relative', height: gridH,
-                  borderLeft: '1px solid rgba(255,255,255,0.05)',
-                  background: today ? 'rgba(108,142,255,0.03)' : 'transparent',
-                  cursor: 'crosshair',
-                }}
-                onClick={e => {
-                  const rect = e.currentTarget.getBoundingClientRect()
-                  const hour = Math.floor((e.clientY - rect.top) / HOUR_PX) + DAY_START
-                  onSlotClick(d, Math.min(Math.max(hour, DAY_START), DAY_END - 1))
-                }}
-              >
-                {hours.map(h => (
-                  <div key={h} style={{
-                    position: 'absolute', top: (h - DAY_START) * HOUR_PX,
-                    left: 0, right: 0, borderTop: '1px solid rgba(255,255,255,0.04)',
-                  }} />
-                ))}
-                {today && (
-                  <div style={{ position: 'absolute', left: 0, right: 0, top: currentTimePx(), zIndex: 5, pointerEvents: 'none' }}>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#F87171', flexShrink: 0 }} />
-                      <div style={{ flex: 1, height: 1.5, background: '#F87171' }} />
-                    </div>
+              <div key={d.toISOString()} style={{
+                width: colWidth, flexShrink: 0, height: '100%',
+                display: 'flex', flexDirection: 'column',
+                borderLeft: '1px solid rgba(255,255,255,0.05)',
+              }}>
+                {/* Day header */}
+                <div
+                  onClick={() => onDayHeaderClick(d)}
+                  style={{
+                    height: HEADER_H, flexShrink: 0,
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center',
+                    borderBottom: '1px solid rgba(255,255,255,0.08)',
+                    cursor: 'pointer',
+                    background: today ? 'rgba(108,142,255,0.05)' : 'transparent',
+                  }}
+                >
+                  <div style={{ fontSize: 10, color: 'rgba(240,242,248,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    {format(d, 'EEE')}
                   </div>
-                )}
-                {laid.map(({ ev, col, maxCols }) => {
-                  const { top, height } = eventPos(ev)
-                  const w = 1 / maxCols
-                  return (
-                    <EventBlock
-                      key={ev.id}
-                      ev={ev}
-                      onClick={() => onEventClick(ev)}
-                      style={{
-                        top: top + 1, height: height - 2,
-                        left: `calc(${col * w * 100}% + 1px)`,
-                        width: `calc(${w * 100}% - 2px)`,
-                        zIndex: 2,
-                      }}
-                    />
-                  )
-                })}
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    width: 26, height: 26, borderRadius: '50%', marginTop: 3,
+                    background: today ? '#6C8EFF' : 'transparent',
+                    fontSize: 13, fontWeight: 700, fontFamily: "'Syne', sans-serif",
+                    color: today ? 'white' : 'rgba(240,242,248,0.85)',
+                  }}>
+                    {format(d, 'd')}
+                  </div>
+                </div>
+
+                {/* Day body — percentage-positioned events, no vertical scroll */}
+                <div
+                  style={{
+                    flex: 1, position: 'relative', overflow: 'hidden',
+                    background: today ? 'rgba(108,142,255,0.03)' : 'transparent',
+                    cursor: 'crosshair',
+                  }}
+                  onClick={e => {
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    const pct  = (e.clientY - rect.top) / rect.height
+                    const hour = Math.floor(pct * (DAY_END - DAY_START)) + DAY_START
+                    onSlotClick(d, Math.min(Math.max(hour, DAY_START), DAY_END - 1))
+                  }}
+                >
+                  {/* Hour grid lines */}
+                  {hours.map((_, i) => (
+                    <div key={i} style={{
+                      position: 'absolute', top: toTop(i * 60),
+                      left: 0, right: 0,
+                      borderTop: '1px solid rgba(255,255,255,0.04)',
+                      pointerEvents: 'none',
+                    }} />
+                  ))}
+
+                  {/* Current time indicator */}
+                  {today && nowMins >= 0 && nowMins <= TOTAL_MINS && (
+                    <div style={{
+                      position: 'absolute', left: 0, right: 0,
+                      top: toTop(nowMins), zIndex: 5, pointerEvents: 'none',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#F87171', flexShrink: 0 }} />
+                        <div style={{ flex: 1, height: 1.5, background: '#F87171' }} />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Events */}
+                  {laid.map(({ ev, col, maxCols }) => {
+                    const s       = getNZHourMin(ev.start_time)
+                    const e       = getNZHourMin(ev.end_time)
+                    const topMins = Math.max((s.hour - DAY_START) * 60 + s.minute, 0)
+                    const endMins = Math.min((e.hour - DAY_START) * 60 + e.minute, TOTAL_MINS)
+                    const durMins = Math.max(endMins - topMins, 30)
+                    const w       = 1 / maxCols
+                    return (
+                      <EventBlock
+                        key={ev.id}
+                        ev={ev}
+                        onClick={() => onEventClick(ev)}
+                        style={{
+                          top:    toTop(topMins),
+                          height: `calc(${toTop(durMins)} - 2px)`,
+                          left:   `calc(${col * w * 100}% + 1px)`,
+                          width:  `calc(${w * 100}% - 2px)`,
+                          zIndex: 2,
+                        }}
+                      />
+                    )
+                  })}
+                </div>
               </div>
             )
           })}
@@ -567,7 +667,10 @@ export default function CalendarModule() {
     setModalEvent(null)
   }
 
-  const openEdit = (ev: CalendarEvent) => setModalEvent(ev)
+  const openEdit = (ev: CalendarEvent) => {
+    const realEv = ev._parentId ? events.find(e => e.id === ev._parentId) ?? ev : ev
+    setModalEvent(realEv)
+  }
 
   const handleSave = (saved: CalendarEvent) => {
     setEvents(prev => {
@@ -584,6 +687,13 @@ export default function CalendarModule() {
     setEvents(prev => prev.filter(e => e.id !== id))
     setModalEvent(undefined)
   }
+
+  // ── Expand recurring events ±3 months around current date
+  const expandedEvents = useMemo(() => {
+    const from = subMonths(currentDate, 3)
+    const to   = addMonths(currentDate, 3)
+    return expandEvents(events, from, to)
+  }, [events, currentDate])
 
   // ── Header title
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
@@ -721,7 +831,7 @@ export default function CalendarModule() {
         {!loading && view === 'day' && (
           <DayView
             date={currentDate}
-            events={events}
+            events={expandedEvents}
             filters={filters}
             onEventClick={openEdit}
             onSlotClick={openCreate}
@@ -730,7 +840,7 @@ export default function CalendarModule() {
         {!loading && view === 'week' && (
           <WeekView
             weekStart={weekStart}
-            events={events}
+            events={expandedEvents}
             filters={filters}
             onEventClick={openEdit}
             onSlotClick={openCreate}
@@ -740,7 +850,7 @@ export default function CalendarModule() {
         {!loading && view === 'month' && (
           <MonthView
             month={currentDate}
-            events={events}
+            events={expandedEvents}
             filters={filters}
             onEventClick={openEdit}
             onDayClick={d => { setCurrentDate(d); setView('day') }}

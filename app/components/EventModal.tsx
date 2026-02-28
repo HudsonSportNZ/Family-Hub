@@ -27,6 +27,8 @@ export interface CalendarEvent {
   location?: string
   members: string[]
   colour?: string
+  recurrence?: string   // 'daily' | 'weekly' | 'monthly' | null
+  _parentId?: string    // runtime only: id of original recurring event
 }
 
 interface EventModalProps {
@@ -96,6 +98,7 @@ export default function EventModal({
   const [saving,      setSaving]      = useState(false)
   const [deleting,    setDeleting]    = useState(false)
   const [error,       setError]       = useState('')
+  const [recurrence,  setRecurrence]  = useState<string>(event?.recurrence ?? 'none')
 
   const toggleMember = (id: string) =>
     setMembers(prev => prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id])
@@ -118,6 +121,7 @@ export default function EventModal({
       end_time:    endISO,
       members,
       colour:      null,
+      recurrence:  recurrence !== 'none' ? recurrence : null,
     }
 
     let result
@@ -227,6 +231,35 @@ export default function EventModal({
           {/* Date — full width */}
           <label style={s.label}>Date</label>
           <input type="date" value={date} onChange={e => setDate(e.target.value)} style={s.input} />
+
+          {/* Repeat */}
+          <label style={s.label}>Repeat</label>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+            {([
+              { value: 'none',    label: 'Once'    },
+              { value: 'daily',   label: 'Daily'   },
+              { value: 'weekly',  label: 'Weekly'  },
+              { value: 'monthly', label: 'Monthly' },
+            ] as const).map(({ value, label }) => {
+              const active = recurrence === value
+              return (
+                <button
+                  key={value}
+                  onClick={() => setRecurrence(value)}
+                  style={{
+                    flex: 1, padding: '8px 4px', borderRadius: 8,
+                    border: `1.5px solid ${active ? '#6C8EFF' : 'rgba(255,255,255,0.1)'}`,
+                    background: active ? 'rgba(108,142,255,0.15)' : 'transparent',
+                    color: active ? '#6C8EFF' : '#64748B',
+                    cursor: 'pointer', fontWeight: 600, fontSize: 12,
+                    transition: 'all 0.15s', fontFamily: 'inherit',
+                  }}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
 
           {/* Start + End — side by side, only when not all-day */}
           {!allDay && (
