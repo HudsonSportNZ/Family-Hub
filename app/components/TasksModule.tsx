@@ -611,9 +611,9 @@ function TaskForm({ form, setForm, editing, saving, error, onSave, onClose, onTo
       style={{
         position: 'fixed', inset: 0, zIndex: 50,
         background: 'rgba(0,0,0,0.7)',
-        display: 'flex', alignItems: 'flex-end',
+        display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
         backdropFilter: 'blur(4px)',
-        overflowY: 'auto',
+        overflow: 'hidden',
       }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
@@ -623,12 +623,15 @@ function TaskForm({ form, setForm, editing, saving, error, onSave, onClose, onTo
         borderRadius: '20px 20px 0 0',
         display: 'flex', flexDirection: 'column',
         maxHeight: '92vh',
+        overflow: 'hidden',
       }}>
         {/* Scrollable content area */}
         <div style={{
           overflowY: 'auto',
-          padding: '24px 24px 0',
+          overflowX: 'hidden',
+          padding: '24px 20px 0',
           flex: 1,
+          boxSizing: 'border-box',
           WebkitOverflowScrolling: 'touch',
         } as React.CSSProperties}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
@@ -787,7 +790,7 @@ function TaskForm({ form, setForm, editing, saving, error, onSave, onClose, onTo
 
         {/* Sticky action buttons */}
         <div style={{
-          padding: '16px 24px',
+          padding: '16px 20px',
           paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
           borderTop: '1px solid rgba(255,255,255,0.06)',
           background: '#0F172A',
