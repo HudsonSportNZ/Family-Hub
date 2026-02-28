@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
@@ -61,10 +62,19 @@ function getGreeting() {
   return 'Good evening'
 }
 
+const navItems = [
+  { id: 'tasks',    icon: '✅', label: 'Tasks',    href: '/tasks'  },
+  { id: 'schedule', icon: '📅', label: 'Calendar', href: null      },
+  { id: 'meals',    icon: '🍴', label: 'Food',     href: null      },
+  { id: 'money',    icon: '💰', label: 'Money',    href: null      },
+]
+
 export default function Dashboard() {
+  const pathname = usePathname()
+  const activeNav = pathname === '/' ? 'home' : (navItems.find(i => i.href && i.href !== '/' && pathname.startsWith(i.href))?.id ?? 'home')
+
   const [tasks, setTasks] = useState<Task[]>([])
   const [completions, setCompletions] = useState<Completion[]>([])
-  const [activeNav, setActiveNav] = useState('home')
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -96,14 +106,6 @@ export default function Dashboard() {
       if (data) setCompletions(prev => [...prev, data as Completion])
     }
   }
-
-  const navItems = [
-    { id: 'home',     icon: '⊞', label: 'Home',     href: '/'       },
-    { id: 'schedule', icon: '🗓', label: 'Schedule', href: null      },
-    { id: 'tasks',    icon: '✅', label: 'Tasks',    href: '/tasks'  },
-    { id: 'meals',    icon: '🍽', label: 'Meals',    href: null      },
-    { id: 'money',    icon: '💰', label: 'Money',    href: null      },
-  ]
 
   const sidebarExtra = [
     { id: 'school', icon: '🏫', label: 'School' },
@@ -326,44 +328,10 @@ export default function Dashboard() {
            MOBILE STYLES
         ══════════════════════════════════════ */
 
-        /* Mobile: hide sidebar, show bottom bar */
-        .bottom-bar { display: none; }
-
         @media (max-width: 768px) {
           html, body { overflow: hidden; }
 
           .sidebar { display: none; }
-
-          .bottom-bar {
-            display: flex;
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            height: var(--bottom-bar);
-            background: var(--panel);
-            border-top: 1px solid var(--border);
-            z-index: 100;
-            align-items: center;
-            justify-content: space-around;
-            padding: 0 8px;
-            padding-bottom: env(safe-area-inset-bottom);
-          }
-
-          .bottom-nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 3px;
-            padding: 6px 12px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-            flex: 1;
-          }
-          .bottom-nav-item.active { background: rgba(108,142,255,0.12); }
-          .bottom-nav-icon { font-size: 20px; line-height: 1; }
-          .bottom-nav-label { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; color: var(--muted); }
-          .bottom-nav-item.active .bottom-nav-label { color: var(--accent); }
 
           .app { flex-direction: column; }
 
@@ -500,7 +468,7 @@ export default function Dashboard() {
                 </div>
               </a>
             ) : (
-              <div key={item.id} className={`nav-item ${activeNav === item.id ? 'active' : ''}`} onClick={() => setActiveNav(item.id)}>
+              <div key={item.id} className={`nav-item ${activeNav === item.id ? 'active' : ''}`}>
                 <div className="nav-icon">{item.icon}</div>
                 <div className="nav-label">{item.label}</div>
               </div>
@@ -508,7 +476,7 @@ export default function Dashboard() {
           ))}
           <div className="nav-divider" />
           {sidebarExtra.map(item => (
-            <div key={item.id} className={`nav-item ${activeNav === item.id ? 'active' : ''}`} onClick={() => setActiveNav(item.id)}>
+            <div key={item.id} className={`nav-item ${activeNav === item.id ? 'active' : ''}`}>
               <div className="nav-icon">{item.icon}</div>
               <div className="nav-label">{item.label}</div>
             </div>
@@ -792,28 +760,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ── MOBILE BOTTOM TAB BAR ── */}
-        <nav className="bottom-bar">
-          {navItems.map(item => (
-            item.href ? (
-              <a key={item.id} href={item.href} style={{ textDecoration: 'none', flex: 1 }}>
-                <div className={`bottom-nav-item ${activeNav === item.id ? 'active' : ''}`}>
-                  <div className="bottom-nav-icon">{item.icon}</div>
-                  <div className="bottom-nav-label">{item.label}</div>
-                </div>
-              </a>
-            ) : (
-              <div
-                key={item.id}
-                className={`bottom-nav-item ${activeNav === item.id ? 'active' : ''}`}
-                onClick={() => setActiveNav(item.id)}
-              >
-                <div className="bottom-nav-icon">{item.icon}</div>
-                <div className="bottom-nav-label">{item.label}</div>
-              </div>
-            )
-          ))}
-        </nav>
 
       </div>
     </>
