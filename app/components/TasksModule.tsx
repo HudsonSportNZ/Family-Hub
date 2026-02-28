@@ -609,20 +609,21 @@ function TaskForm({ form, setForm, editing, saving, error, onSave, onClose, onTo
   return (
     <div
       style={{
-        position: 'fixed', inset: 0, zIndex: 50,
+        position: 'fixed', inset: 0, zIndex: 110,
         background: 'rgba(0,0,0,0.7)',
         display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
         backdropFilter: 'blur(4px)',
+        width: '100%',
         overflow: 'hidden',
       }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <div style={{
-        width: '100%', maxWidth: 600, margin: '0 auto',
+        width: '100%',
         background: '#0F172A', border: '1px solid rgba(255,255,255,0.1)',
         borderRadius: '20px 20px 0 0',
         display: 'flex', flexDirection: 'column',
-        maxHeight: '92vh',
+        maxHeight: '88vh',
         overflow: 'hidden',
       }}>
         {/* Scrollable content area */}
@@ -631,8 +632,10 @@ function TaskForm({ form, setForm, editing, saving, error, onSave, onClose, onTo
           overflowX: 'hidden',
           padding: '24px 20px 0',
           flex: 1,
+          width: '100%',
           boxSizing: 'border-box',
           WebkitOverflowScrolling: 'touch',
+          overscrollBehavior: 'contain',
         } as React.CSSProperties}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{editing ? 'Edit Task' : 'New Task'}</h2>
@@ -790,11 +793,13 @@ function TaskForm({ form, setForm, editing, saving, error, onSave, onClose, onTo
 
         {/* Sticky action buttons */}
         <div style={{
-          padding: '16px 20px',
-          paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
+          padding: '14px 20px',
+          paddingBottom: 'max(20px, env(safe-area-inset-bottom, 20px))',
           borderTop: '1px solid rgba(255,255,255,0.06)',
           background: '#0F172A',
           display: 'flex', gap: 10, flexShrink: 0,
+          width: '100%',
+          boxSizing: 'border-box',
         }}>
           <button onClick={onClose} style={{ flex: 1, ...styles.secondaryBtn }}>Cancel</button>
           <button onClick={onSave} disabled={saving || !form.title?.trim()} style={{
