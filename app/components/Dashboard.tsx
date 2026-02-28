@@ -4,10 +4,10 @@ import { useState } from 'react'
 
 export default function Dashboard() {
   const [tasks, setTasks] = useState([
-    { id: 1, text: 'Empty dishwasher', done: true, person: 'Ella', color: 'rgba(251,191,36,0.12)', textColor: '#FBBF24' },
-    { id: 2, text: 'Feed the dog', done: true, person: 'Ella', color: 'rgba(251,191,36,0.12)', textColor: '#FBBF24' },
+    { id: 1, text: 'Empty dishwasher', done: true, person: 'Isabel', color: 'rgba(251,191,36,0.12)', textColor: '#FBBF24' },
+    { id: 2, text: 'Feed the dog', done: true, person: 'Isabel', color: 'rgba(251,191,36,0.12)', textColor: '#FBBF24' },
     { id: 3, text: 'Grocery run', done: false, person: 'Mum', color: 'rgba(108,142,255,0.12)', textColor: '#6C8EFF' },
-    { id: 4, text: 'Set the table for dinner', done: false, person: 'Jack', color: 'rgba(244,114,182,0.12)', textColor: '#F472B6' },
+    { id: 4, text: 'Set the table for dinner', done: false, person: 'James', color: 'rgba(244,114,182,0.12)', textColor: '#F472B6' },
     { id: 5, text: 'Vacuum lounge', done: false, person: 'Mum', color: 'rgba(108,142,255,0.12)', textColor: '#6C8EFF' },
     { id: 6, text: 'Take out bins', done: false, person: 'Dad', color: 'rgba(52,211,153,0.12)', textColor: '#34D399' },
     { id: 7, text: 'Sign Zoo permission slip', done: false, person: 'Urgent', color: 'rgba(248,113,113,0.12)', textColor: '#F87171' },
@@ -230,7 +230,7 @@ export default function Dashboard() {
                 <div className="today-card" style={{borderColor:'rgba(251,191,36,0.2)'}}>
                   <div className="card-avatar" style={{background:'linear-gradient(135deg,#FBBF24,#F97316)'}}>E</div>
                   <div className="card-body">
-                    <div className="card-name">Ella — PE Gear today 👟</div>
+                    <div className="card-name">Isabel — PE Gear today 👟</div>
                     <div className="card-detail">Don&apos;t forget sports shoes & water bottle. PE is period 2.</div>
                   </div>
                   <div className="card-tag" style={{background:'rgba(251,191,36,0.12)',color:'#FBBF24'}}>School</div>
@@ -238,7 +238,7 @@ export default function Dashboard() {
                 <div className="today-card" style={{borderColor:'rgba(244,114,182,0.2)'}}>
                   <div className="card-avatar" style={{background:'linear-gradient(135deg,#F472B6,#A78BFA)'}}>J</div>
                   <div className="card-body">
-                    <div className="card-name">Jack — School uniform 👕</div>
+                    <div className="card-name">James — School uniform 👕</div>
                     <div className="card-detail">Regular uniform day. Bag packed? Reading folder inside.</div>
                   </div>
                   <div className="card-tag" style={{background:'rgba(244,114,182,0.12)',color:'#F472B6'}}>School</div>
@@ -263,7 +263,7 @@ export default function Dashboard() {
                   <div className="card-emoji" style={{background:'rgba(248,113,113,0.1)'}}>📋</div>
                   <div className="card-body">
                     <div className="card-name">Permission slip due Monday</div>
-                    <div className="card-detail">Ella&apos;s Zoo excursion — sign & return by Mon 3 Mar</div>
+                    <div className="card-detail">Isabel&apos;s Zoo excursion — sign & return by Mon 3 Mar</div>
                   </div>
                   <div className="card-tag" style={{background:'rgba(248,113,113,0.12)',color:'#F87171'}}>Urgent</div>
                 </div>
