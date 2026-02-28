@@ -13,12 +13,6 @@ const TODAY = new Date().toISOString().split('T')[0]
 
 type Member = 'M' | 'D' | 'I' | 'J'
 
-const MEMBER_STYLES: Record<Member, { color: string; bg: string; label: string; gradient: string }> = {
-  M: { color: '#6C8EFF', bg: 'rgba(108,142,255,0.12)', label: 'Mum',    gradient: 'linear-gradient(135deg,#6C8EFF,#A78BFA)' },
-  D: { color: '#34D399', bg: 'rgba(52,211,153,0.12)',  label: 'Dad',    gradient: 'linear-gradient(135deg,#34D399,#22D3EE)' },
-  I: { color: '#F472B6', bg: 'rgba(244,114,182,0.12)', label: 'Isabel', gradient: 'linear-gradient(135deg,#FBBF24,#F97316)' },
-  J: { color: '#FBBF24', bg: 'rgba(251,191,36,0.12)',  label: 'James',  gradient: 'linear-gradient(135deg,#F472B6,#A78BFA)' },
-}
 
 interface Task {
   id: string
@@ -69,12 +63,20 @@ const navItems = [
   { id: 'money',    icon: '💰', label: 'Money',    href: null      },
 ]
 
+const FAMILY = [
+  { id: 'M', label: 'Mum',    color: '#6C8EFF' },
+  { id: 'D', label: 'Dad',    color: '#34D399' },
+  { id: 'I', label: 'Isabel', color: '#FBBF24' },
+  { id: 'J', label: 'James',  color: '#F472B6' },
+]
+
 export default function Dashboard() {
   const pathname = usePathname()
   const activeNav = pathname === '/' ? 'home' : (navItems.find(i => i.href && i.href !== '/' && pathname.startsWith(i.href))?.id ?? 'home')
 
   const [tasks, setTasks] = useState<Task[]>([])
   const [completions, setCompletions] = useState<Completion[]>([])
+  const [activeMember, setActiveMember] = useState('M')
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -91,21 +93,7 @@ export default function Dashboard() {
   const todayTasks = tasks.filter(isTaskDueToday)
   const isCompleted = (taskId: string) => completions.some(c => c.task_id === taskId)
   const doneCount = todayTasks.filter(t => isCompleted(t.id)).length
-
-  const toggleTask = async (task: Task) => {
-    const existing = completions.find(c => c.task_id === task.id)
-    if (existing) {
-      await supabase.from('task_completions').delete().eq('id', existing.id)
-      setCompletions(prev => prev.filter(c => c.id !== existing.id))
-    } else {
-      const member = task.assigned_to[0] ?? 'M'
-      const { data } = await supabase
-        .from('task_completions')
-        .insert({ task_id: task.id, completed_by: member, completed_for_date: TODAY })
-        .select().single()
-      if (data) setCompletions(prev => [...prev, data as Completion])
-    }
-  }
+  const remainingCount = todayTasks.length - doneCount
 
   const sidebarExtra = [
     { id: 'school', icon: '🏫', label: 'School' },
@@ -116,15 +104,14 @@ export default function Dashboard() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap');
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
           --bg: #0D0F14; --panel: #13151C; --card: #181B24; --card2: #1E2130;
-          --border: rgba(255,255,255,0.06); --border2: rgba(255,255,255,0.1);
-          --text: #F0F2F8; --muted: rgba(240,242,248,0.35); --muted2: rgba(240,242,248,0.6);
-          --accent: #6C8EFF; --green: #34D399; --amber: #FBBF24; --red: #F87171; --pink: #F472B6;
+          --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+          --text: #F0F2F8; --muted: rgba(240,242,248,0.4);
+          --accent: #6C8EFF; --accent2: #A78BFA;
+          --green: #34D399; --amber: #FBBF24; --red: #F87171; --pink: #F472B6; --cyan: #22D3EE;
           --bottom-bar: 64px;
         }
 
@@ -136,26 +123,19 @@ export default function Dashboard() {
           overflow: hidden;
         }
 
-        /* ── LAYOUT ── */
+        /* ── APP SHELL ── */
         .app { display: flex; height: 100vh; width: 100vw; overflow: hidden; }
 
-        /* Desktop sidebar */
+        /* ── DESKTOP SIDEBAR ── */
         .sidebar {
-          width: 68px;
-          background: var(--panel);
-          border-right: 1px solid var(--border);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 18px 0;
-          gap: 4px;
-          flex-shrink: 0;
+          width: 68px; background: var(--panel); border-right: 1px solid var(--border);
+          display: flex; flex-direction: column; align-items: center;
+          padding: 18px 0; gap: 4px; flex-shrink: 0;
         }
         .sidebar-logo {
           width: 38px; height: 38px;
           background: linear-gradient(135deg, #6C8EFF, #A78BFA);
-          border-radius: 11px;
-          display: flex; align-items: center; justify-content: center;
+          border-radius: 11px; display: flex; align-items: center; justify-content: center;
           font-family: 'Syne', sans-serif; font-weight: 800; font-size: 14px; color: white;
           margin-bottom: 18px; flex-shrink: 0;
         }
@@ -180,277 +160,221 @@ export default function Dashboard() {
         }
         .av:hover { border-color: var(--accent); transform: scale(1.08); }
 
-        /* Main content */
+        /* ── MAIN COLUMN ── */
         .main {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-          padding: 24px 28px;
-          gap: 20px;
+          flex: 1; display: flex; flex-direction: column;
+          overflow: hidden; min-width: 0;
         }
 
-        /* ── TOPBAR ── */
-        .topbar { display: flex; align-items: flex-end; justify-content: space-between; flex-shrink: 0; }
-        .greeting { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 700; line-height: 1; letter-spacing: -0.5px; }
-        .date-text { font-size: 12px; color: var(--muted); margin-top: 5px; }
-        .topbar-right { display: flex; align-items: center; gap: 8px; }
-        .live-pill {
-          display: flex; align-items: center; gap: 5px;
-          background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.18);
-          color: #34D399; padding: 5px 11px; border-radius: 20px;
-          font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
-        }
-        .live-dot { width: 5px; height: 5px; background: #34D399; border-radius: 50%; animation: blink 2s infinite; }
-        @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
-        .notif-btn {
-          width: 34px; height: 34px; background: var(--card); border: 1px solid var(--border);
-          border-radius: 10px; display: flex; align-items: center; justify-content: center;
-          cursor: pointer; font-size: 14px; position: relative;
-        }
-        .notif-badge { position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; background: #F87171; border-radius: 50%; border: 1.5px solid var(--panel); }
-
-        /* ── DESKTOP GRID ── */
-        .grid {
-          flex: 1;
-          display: grid;
-          grid-template-columns: 1.2fr 1fr 0.8fr;
-          grid-template-rows: 1fr 1fr;
-          gap: 14px;
-          overflow: hidden;
-          min-height: 0;
-        }
-
-        /* ── PANELS ── */
-        .panel {
-          background: var(--card); border: 1px solid var(--border); border-radius: 18px;
-          padding: 20px; display: flex; flex-direction: column; overflow: hidden;
-          transition: border-color 0.2s; animation: fadeUp 0.35s ease both;
-        }
-        .panel:hover { border-color: var(--border2); }
-        .panel.tall { grid-row: span 2; }
-        @keyframes fadeUp { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
-
-        .ph { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-shrink: 0; }
-        .ph-left { display: flex; align-items: center; gap: 10px; }
-        .ph-icon { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
-        .ph-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; }
-        .ph-sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
-        .ph-action {
-          font-size: 10px; color: var(--muted); cursor: pointer; padding: 3px 9px;
-          border-radius: 7px; background: var(--card2); border: 1px solid var(--border);
-          transition: all 0.2s; font-weight: 500; text-decoration: none; display: inline-block;
-        }
-        .ph-action:hover { color: var(--accent); border-color: rgba(108,142,255,0.3); }
-        .pb { flex: 1; overflow: hidden; display: flex; flex-direction: column; gap: 8px; }
-
-        /* ── CARDS ── */
-        .today-card {
-          display: flex; align-items: flex-start; gap: 12px; padding: 13px 14px;
-          border-radius: 13px; background: var(--card2); border: 1px solid transparent;
-          transition: all 0.2s; cursor: pointer; flex-shrink: 0;
-        }
-        .today-card:hover { background: rgba(255,255,255,0.04); }
-        .card-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex-shrink: 0; font-family: 'Syne', sans-serif; }
-        .card-emoji { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-        .card-body { flex: 1; min-width: 0; }
-        .card-name { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.2; }
-        .card-detail { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
-        .card-tag { font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 20px; flex-shrink: 0; align-self: flex-start; text-transform: uppercase; letter-spacing: 0.3px; }
-        .card-time { font-size: 10px; color: var(--muted); font-weight: 500; flex-shrink: 0; align-self: flex-start; margin-top: 2px; }
-
-        /* ── WEATHER ── */
-        .weather-strip { background: var(--card2); border-radius: 13px; padding: 11px 14px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; border: 1px solid var(--border); }
-        .w-temp { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; line-height: 1; }
-        .w-desc { font-size: 10px; color: var(--muted); margin-top: 2px; }
-        .w-tag { font-size: 9px; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
-        .dp-labels { display: flex; justify-content: space-between; margin-bottom: 5px; }
-        .dp-label { font-size: 9px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; }
-        .dp-pct { font-size: 9px; color: var(--accent); font-weight: 600; }
-        .dp-track { height: 4px; background: var(--card2); border-radius: 10px; overflow: hidden; }
-        .dp-fill { height: 100%; width: 37%; background: linear-gradient(90deg, #6C8EFF, #A78BFA); border-radius: 10px; }
-
-        /* ── TASKS ── */
-        .task-row {
-          display: flex; align-items: center; gap: 9px; padding: 9px 11px;
-          border-radius: 10px; background: var(--card2); transition: background 0.2s;
-          cursor: pointer; flex-shrink: 0;
-        }
-        .task-row:hover { background: rgba(255,255,255,0.05); }
-        .task-cb { width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--border2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 9px; transition: all 0.18s; }
-        .task-cb.done { background: #34D399; border-color: #34D399; color: #0D0F14; font-weight: 700; }
-        .task-text { flex: 1; font-size: 11px; font-weight: 500; }
-        .task-text.done { text-decoration: line-through; color: var(--muted); }
-        .task-tag { font-size: 9px; font-weight: 600; padding: 2px 7px; border-radius: 6px; flex-shrink: 0; }
-        .task-progress { height: 3px; background: var(--card2); border-radius: 10px; overflow: hidden; margin-bottom: 4px; flex-shrink: 0; }
-        .task-progress-fill { height: 100%; background: linear-gradient(90deg, #6C8EFF, #34D399); border-radius: 10px; transition: width 0.4s ease; }
-
-        /* ── GOALS ── */
-        .metric-ring { position: relative; width: 76px; height: 76px; flex-shrink: 0; }
-        .metric-ring svg { transform: rotate(-90deg); }
-        .ring-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .rval { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; line-height: 1; color: #A78BFA; }
-        .rlbl { font-size: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; margin-top: 1px; }
-        .metric-row { flex: 1; display: flex; flex-direction: column; gap: 8px; justify-content: center; }
-        .mg-top { display: flex; justify-content: space-between; margin-bottom: 4px; }
-        .mg-name { font-size: 11px; font-weight: 500; }
-        .mg-pct { font-size: 10px; color: var(--muted); }
-        .mg-track { height: 4px; background: var(--card2); border-radius: 10px; overflow: hidden; }
-        .mg-fill { height: 100%; border-radius: 10px; }
-
-        /* ── MEAL ── */
-        .meal-hero { flex: 1; background: var(--card2); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border: 1px solid rgba(244,114,182,0.15); cursor: pointer; transition: border-color 0.2s; }
-        .meal-hero:hover { border-color: rgba(244,114,182,0.3); }
-        .meal-emoji { font-size: 38px; margin-bottom: 8px; line-height: 1; }
-        .meal-name { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
-        .meal-detail { font-size: 11px; color: var(--muted); margin-top: 3px; }
-        .meal-tags { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; justify-content: center; }
-        .meal-tag { font-size: 10px; padding: 3px 10px; border-radius: 20px; font-weight: 500; }
-
-        /* ── MONEY ── */
-        .budget-split { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex-shrink: 0; margin-bottom: 10px; }
-        .bsplit { background: var(--card2); border-radius: 10px; padding: 10px 12px; }
-        .bval { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; line-height: 1; }
-        .blbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 3px; }
-        .spend-bar-wrap { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 9px; }
-        .sbar-top { display: flex; justify-content: space-between; margin-bottom: 3px; }
-        .sbar-lbl { font-size: 11px; font-weight: 500; }
-        .sbar-num { font-size: 10px; color: var(--muted); }
-        .sbar-track { height: 4px; background: var(--card2); border-radius: 10px; overflow: hidden; }
-        .sbar-fill { height: 100%; border-radius: 10px; }
-
-        /* ── EMPTY STATE ── */
-        .empty-tasks { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 8px; color: var(--muted); }
-        .empty-tasks span { font-size: 28px; }
-        .empty-tasks p { font-size: 11px; }
-
-        /* ══════════════════════════════════════
-           MOBILE STYLES
-        ══════════════════════════════════════ */
-
-        @media (max-width: 768px) {
-          html, body { overflow: hidden; }
-
-          .sidebar { display: none; }
-
-          .app { flex-direction: column; }
-
-          .main {
-            padding: 16px 16px 0 16px;
-            gap: 14px;
-            overflow-y: auto;
-            overflow-x: hidden;
-            /* room for bottom bar + notch safe area */
-            padding-bottom: calc(var(--bottom-bar) + 16px + env(safe-area-inset-bottom));
-            height: 100vh;
-            height: 100dvh;
-          }
-
-          /* Mobile topbar */
-          .greeting { font-size: 20px; }
-          .date-text { font-size: 11px; }
-          .live-pill { padding: 4px 8px; font-size: 9px; }
-
-          /* Mobile: single column stacked cards */
-          .grid {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            overflow: visible;
-            flex: none;
-          }
-
-          .panel { border-radius: 16px; padding: 16px; }
-          .panel.tall { grid-row: unset; }
-
-          /* What's On — limit height on mobile, scrollable internally */
-          .panel.tall .pb {
-            max-height: 320px;
-            overflow-y: auto;
-          }
-
-          /* Member avatars row on mobile */
-          .mobile-members {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 14px;
-            flex-shrink: 0;
-            overflow-x: auto;
-          }
-          .member-pill {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            border-radius: 99px;
-            border: 1px solid var(--border);
-            background: var(--card2);
-            font-size: 12px;
-            font-weight: 600;
-          }
-          .member-dot {
-            width: 8px; height: 8px;
-            border-radius: 50%;
-          }
-
-          /* Bigger tap targets on mobile */
-          .task-row { padding: 12px 14px; }
-          .task-cb { width: 22px; height: 22px; border-radius: 6px; font-size: 11px; }
-          .task-text { font-size: 13px; }
-          .task-tag { font-size: 10px; padding: 3px 9px; }
-
-          .today-card { padding: 12px; }
-          .card-name { font-size: 13px; }
-
-          /* Hide desktop ring chart on mobile */
-          .goals-desktop { display: none; }
-
-          /* Goals — horizontal scroll on mobile */
-          .goals-scroll {
-            display: flex;
-            gap: 10px;
-            overflow-x: auto;
-            padding-bottom: 4px;
-          }
-          .goal-chip {
-            flex-shrink: 0;
-            background: var(--card2);
-            border-radius: 12px;
-            padding: 12px 14px;
-            min-width: 110px;
-            text-align: center;
-          }
-          .goal-chip-pct {
-            font-family: 'Syne', sans-serif;
-            font-size: 22px;
-            font-weight: 800;
-            line-height: 1;
-          }
-          .goal-chip-name {
-            font-size: 11px;
-            color: var(--muted);
-            margin-top: 4px;
-          }
-          .goal-chip-bar {
-            height: 3px;
-            background: var(--border);
-            border-radius: 99px;
-            overflow: hidden;
-            margin-top: 8px;
-          }
-
-          /* Money — horizontal budget chips */
-          .budget-split { grid-template-columns: 1fr 1fr; gap: 10px; }
-          .bval { font-size: 22px; }
-
-          /* Meal */
-          .meal-emoji { font-size: 44px; }
-          .meal-name { font-size: 20px; }
+        .main-inner {
+          display: flex; flex-direction: column;
+          height: 100%; overflow: hidden;
         }
 
         @media (min-width: 769px) {
-          .mobile-members { display: none; }
-          .goals-scroll { display: none; }
+          .main-inner {
+            max-width: 430px; width: 100%; margin: 0 auto;
+          }
+        }
+
+        /* ── HEADER ── */
+        .dash-header { padding: 16px 22px 10px; flex-shrink: 0; }
+        @media (min-width: 769px) { .dash-header { padding-top: 24px; } }
+
+        .dash-header-top {
+          display: flex; justify-content: space-between; align-items: flex-start;
+        }
+        .dash-greeting {
+          font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800;
+          color: var(--text); line-height: 1;
+        }
+        .dash-date { font-size: 12px; color: var(--muted); margin-top: 3px; }
+        .dash-header-right { display: flex; gap: 8px; align-items: center; }
+
+        .live-pill {
+          display: flex; align-items: center; gap: 4px;
+          background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.2);
+          color: var(--green); padding: 4px 10px; border-radius: 20px;
+          font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .live-dot { width: 5px; height: 5px; background: var(--green); border-radius: 50%; animation: blink 2s infinite; }
+        @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+        .notif-btn {
+          width: 32px; height: 32px; background: var(--card); border: 1px solid var(--border);
+          border-radius: 10px; display: flex; align-items: center; justify-content: center;
+          font-size: 14px; position: relative; cursor: pointer;
+        }
+        .notif-dot {
+          position: absolute; top: 4px; right: 4px;
+          width: 6px; height: 6px; background: var(--red);
+          border-radius: 50%; border: 1.5px solid var(--bg);
+        }
+
+        /* ── FAMILY BAR ── */
+        .family-bar {
+          display: flex; gap: 8px; padding: 0 22px 12px; flex-shrink: 0;
+          overflow-x: auto; scrollbar-width: none;
+        }
+        .family-bar::-webkit-scrollbar { display: none; }
+        .fam-chip {
+          display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+          border-radius: 20px; background: var(--card); border: 1px solid var(--border);
+          font-size: 12px; font-weight: 600; color: var(--muted);
+          cursor: pointer; transition: all 0.2s; flex-shrink: 0; white-space: nowrap;
+        }
+        .fam-chip.active {
+          background: rgba(108,142,255,0.12);
+          border-color: rgba(108,142,255,0.3);
+          color: var(--text);
+        }
+        .fam-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+        /* ── QUICK STATS ── */
+        .quick-row {
+          display: grid; grid-template-columns: 1fr 1fr 1fr;
+          gap: 8px; padding: 0 22px 12px; flex-shrink: 0;
+        }
+        .quick-card {
+          background: var(--card); border: 1px solid var(--border);
+          border-radius: 16px; padding: 12px 10px;
+          display: flex; flex-direction: column; gap: 4px;
+          cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
+          text-decoration: none; color: inherit;
+        }
+        .quick-card:hover { border-color: var(--border2); }
+        .qc-icon { font-size: 18px; margin-bottom: 2px; }
+        .qc-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+        .qc-value { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.2; }
+        .qc-sub { font-size: 9px; color: var(--muted); }
+        .qc-bar { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; border-radius: 0 0 16px 16px; }
+
+        /* ── SCROLL AREA ── */
+        .dash-scroll {
+          flex: 1; overflow-y: auto; overflow-x: hidden;
+          padding: 0 22px;
+          padding-bottom: calc(var(--bottom-bar) + 16px + env(safe-area-inset-bottom));
+          display: flex; flex-direction: column; gap: 12px;
+          -webkit-overflow-scrolling: touch; scrollbar-width: none;
+        }
+        .dash-scroll::-webkit-scrollbar { display: none; }
+        @media (min-width: 769px) { .dash-scroll { padding-bottom: 24px; } }
+
+        /* ── WEATHER HERO ── */
+        .weather-hero {
+          border-radius: 22px; padding: 22px; position: relative; overflow: hidden;
+          background: linear-gradient(135deg, #1a2340 0%, #0f1628 50%, #151828 100%);
+          border: 1px solid rgba(108,142,255,0.2);
+          min-height: 160px; display: flex; flex-direction: column; justify-content: space-between;
+          flex-shrink: 0;
+        }
+        .weather-hero::before {
+          content: ''; position: absolute; top: -30px; right: -30px;
+          width: 160px; height: 160px;
+          background: radial-gradient(circle, rgba(108,142,255,0.15) 0%, transparent 70%);
+          pointer-events: none;
+        }
+        .weather-hero::after {
+          content: ''; position: absolute; bottom: -20px; left: 20px;
+          width: 100px; height: 100px;
+          background: radial-gradient(circle, rgba(34,211,238,0.08) 0%, transparent 70%);
+          pointer-events: none;
+        }
+        .weather-top { display: flex; justify-content: space-between; align-items: flex-start; }
+        .weather-temp {
+          font-family: 'Syne', sans-serif; font-size: 52px; font-weight: 800;
+          color: white; line-height: 1; letter-spacing: -2px;
+        }
+        .weather-desc { font-size: 13px; color: rgba(255,255,255,0.6); margin-top: 4px; }
+        .weather-loc { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+        .weather-stats { display: flex; gap: 16px; margin-top: 12px; }
+        .wstat-val { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: white; }
+        .wstat-lbl { font-size: 9px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.3px; margin-top: 1px; }
+        .weather-icon-big { font-size: 64px; line-height: 1; flex-shrink: 0; }
+        .weather-bottom { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+        .weather-tag { font-size: 10px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+
+        /* ── SECTION CARD ── */
+        .section-card {
+          background: var(--card); border: 1px solid var(--border);
+          border-radius: 20px; padding: 16px; flex-shrink: 0;
+        }
+        .section-label {
+          font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px;
+          color: var(--muted); font-weight: 700; margin-bottom: 12px;
+        }
+
+        /* ── UNIFORM ── */
+        .uniform-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .uniform-item {
+          background: var(--card2); border-radius: 14px; padding: 14px 12px;
+          display: flex; flex-direction: column; gap: 6px;
+          border: 1px solid transparent; transition: all 0.2s;
+        }
+        .uniform-item.highlight {
+          border-color: rgba(251,191,36,0.3); background: rgba(251,191,36,0.05);
+        }
+        .uniform-child { display: flex; align-items: center; gap: 7px; }
+        .uniform-avatar {
+          width: 24px; height: 24px; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 10px; font-weight: 800; font-family: 'Syne', sans-serif; flex-shrink: 0;
+        }
+        .uniform-name { font-size: 12px; font-weight: 600; color: var(--text); }
+        .uniform-type { font-size: 18px; margin: 2px 0; }
+        .uniform-detail { font-size: 10px; color: var(--muted); line-height: 1.3; }
+        .uniform-badge {
+          font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+          align-self: flex-start; text-transform: uppercase; letter-spacing: 0.3px;
+        }
+
+        /* ── EVENTS ── */
+        .event-item {
+          display: flex; align-items: center; gap: 12px;
+          padding: 10px 0; border-bottom: 1px solid var(--border);
+        }
+        .event-item:first-child { padding-top: 0; }
+        .event-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .event-item.current {
+          background: rgba(108,142,255,0.05); border-radius: 12px;
+          padding: 10px 8px; margin: 0 -4px; border-bottom: none;
+        }
+        .event-time-col { width: 40px; flex-shrink: 0; text-align: center; }
+        .event-time { font-size: 11px; font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums; }
+        .event-ampm { font-size: 9px; color: var(--muted); }
+        .event-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+        .event-dot.glow { box-shadow: 0 0 0 3px rgba(108,142,255,0.2); }
+        .event-info { flex: 1; }
+        .event-name { font-size: 13px; font-weight: 600; color: var(--text); }
+        .event-name.done { text-decoration: line-through; color: rgba(240,242,248,0.3); }
+        .event-detail { font-size: 11px; color: var(--muted); margin-top: 2px; }
+        .event-who { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; }
+
+        /* ── QUOTE ── */
+        .quote-card {
+          background: linear-gradient(135deg, rgba(108,142,255,0.08), rgba(167,139,250,0.08));
+          border: 1px solid rgba(108,142,255,0.15);
+          border-radius: 20px; padding: 18px; text-align: center;
+          position: relative; overflow: hidden; flex-shrink: 0;
+        }
+        .quote-card::before {
+          content: '"'; position: absolute; top: -10px; left: 10px;
+          font-family: 'Syne', sans-serif; font-size: 80px; font-weight: 800;
+          color: rgba(108,142,255,0.1); line-height: 1;
+        }
+        .quote-emoji { font-size: 22px; margin-bottom: 8px; }
+        .quote-text {
+          font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
+          color: var(--text); line-height: 1.4; position: relative; z-index: 1;
+        }
+        .quote-author { font-size: 11px; color: var(--muted); margin-top: 8px; }
+
+        /* ── MOBILE ── */
+        @media (max-width: 768px) {
+          html, body { overflow: hidden; }
+          .sidebar { display: none; }
+          .app { flex-direction: column; }
+          .dash-greeting { font-size: 22px; }
         }
       `}</style>
 
@@ -492,279 +416,216 @@ export default function Dashboard() {
 
         {/* ── MAIN ── */}
         <div className="main">
+          <div className="main-inner">
 
-          {/* TOPBAR */}
-          <div className="topbar">
-            <div>
-              <div className="greeting">{getGreeting()} 👋</div>
-              <div className="date-text">{new Date().toLocaleDateString('en-NZ', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}</div>
-            </div>
-            <div className="topbar-right">
-              <div className="live-pill"><div className="live-dot" /> Live</div>
-              <div className="notif-btn">🔔<div className="notif-badge" /></div>
-            </div>
-          </div>
-
-          {/* MOBILE: member pills */}
-          <div className="mobile-members">
-            {(Object.entries(MEMBER_STYLES) as [Member, typeof MEMBER_STYLES[Member]][]).map(([id, m]) => (
-              <div key={id} className="member-pill">
-                <div className="member-dot" style={{background: m.color}} />
-                {m.label}
+            {/* HEADER */}
+            <div className="dash-header">
+              <div className="dash-header-top">
+                <div>
+                  <div className="dash-greeting" suppressHydrationWarning>{getGreeting()} 👋</div>
+                  <div className="dash-date" suppressHydrationWarning>
+                    {new Date().toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  </div>
+                </div>
+                <div className="dash-header-right">
+                  <div className="live-pill"><div className="live-dot" /> Live</div>
+                  <div className="notif-btn">🔔<div className="notif-dot" /></div>
+                </div>
               </div>
-            ))}
-          </div>
+            </div>
 
-          {/* GRID */}
-          <div className="grid">
+            {/* FAMILY SELECTOR */}
+            <div className="family-bar">
+              {FAMILY.map(f => (
+                <div
+                  key={f.id}
+                  className={`fam-chip ${activeMember === f.id ? 'active' : ''}`}
+                  onClick={() => setActiveMember(f.id)}
+                >
+                  <div className="fam-dot" style={{background: f.color}} />
+                  {f.label}
+                </div>
+              ))}
+            </div>
 
-            {/* WHAT'S ON TODAY */}
-            <div className="panel tall">
-              <div className="ph">
-                <div className="ph-left">
-                  <div className="ph-icon" style={{background:'rgba(108,142,255,0.15)'}}>✨</div>
+            {/* QUICK STATS */}
+            <div className="quick-row">
+              <a href="/tasks" className="quick-card">
+                <div className="qc-icon">✅</div>
+                <div className="qc-label">Tasks</div>
+                <div className="qc-value">{todayTasks.length === 0 ? '—' : remainingCount === 0 ? 'All done!' : `${remainingCount} left`}</div>
+                <div className="qc-sub">{doneCount} of {todayTasks.length} done</div>
+                <div className="qc-bar" style={{background:'var(--green)'}} />
+              </a>
+              <div className="quick-card">
+                <div className="qc-icon">🌮</div>
+                <div className="qc-label">Dinner</div>
+                <div className="qc-value">Tacos</div>
+                <div className="qc-sub">30 mins</div>
+                <div className="qc-bar" style={{background:'var(--pink)'}} />
+              </div>
+              <div className="quick-card">
+                <div className="qc-icon">💬</div>
+                <div className="qc-label">Quote</div>
+                <div className="qc-value">Daily</div>
+                <div className="qc-sub">Tap to read</div>
+                <div className="qc-bar" style={{background:'var(--accent2)'}} />
+              </div>
+            </div>
+
+            {/* SCROLLABLE CONTENT */}
+            <div className="dash-scroll">
+
+              {/* WEATHER HERO */}
+              <div className="weather-hero">
+                <div className="weather-top">
                   <div>
-                    <div className="ph-title">What&apos;s On Today</div>
-                    <div className="ph-sub">{new Date().toLocaleDateString('en-NZ', { weekday:'short', day:'numeric', month:'short' })} · 6 things</div>
-                  </div>
-                </div>
-                <div className="ph-action">Calendar</div>
-              </div>
-              <div className="pb">
-                <div style={{flexShrink:0}}>
-                  <div className="dp-labels">
-                    <div className="dp-label">Day progress</div>
-                    <div className="dp-pct">37%</div>
-                  </div>
-                  <div className="dp-track"><div className="dp-fill" /></div>
-                </div>
-                <div className="weather-strip">
-                  <div style={{fontSize:22}}>⛅</div>
-                  <div style={{flex:1}}>
-                    <div className="w-temp">18°C</div>
-                    <div className="w-desc">Partly cloudy · Wellington</div>
-                  </div>
-                  <div className="w-tag" style={{background:'rgba(52,211,153,0.1)',color:'#34D399'}}>Good outside</div>
-                </div>
-                <div className="today-card" style={{borderColor:'rgba(251,191,36,0.2)'}}>
-                  <div className="card-avatar" style={{background:'linear-gradient(135deg,#FBBF24,#F97316)'}}>I</div>
-                  <div className="card-body">
-                    <div className="card-name">Isabel — PE Gear 👟</div>
-                    <div className="card-detail">Sports shoes & water bottle. Period 2.</div>
-                  </div>
-                  <div className="card-tag" style={{background:'rgba(251,191,36,0.12)',color:'#FBBF24'}}>School</div>
-                </div>
-                <div className="today-card" style={{borderColor:'rgba(244,114,182,0.2)'}}>
-                  <div className="card-avatar" style={{background:'linear-gradient(135deg,#F472B6,#A78BFA)'}}>J</div>
-                  <div className="card-body">
-                    <div className="card-name">James — Uniform 👕</div>
-                    <div className="card-detail">Regular day. Reading folder in bag.</div>
-                  </div>
-                  <div className="card-tag" style={{background:'rgba(244,114,182,0.12)',color:'#F472B6'}}>School</div>
-                </div>
-                <div className="today-card" style={{borderColor:'rgba(52,211,153,0.2)'}}>
-                  <div className="card-avatar" style={{background:'linear-gradient(135deg,#34D399,#22D3EE)'}}>D</div>
-                  <div className="card-body">
-                    <div className="card-name">Dad — Drop-off & pick-up 🚗</div>
-                    <div className="card-detail">7:30am drop · 3:10pm pick-up · Both kids</div>
-                  </div>
-                  <div className="card-tag" style={{background:'rgba(52,211,153,0.12)',color:'#34D399'}}>Transport</div>
-                </div>
-                <div className="today-card" style={{borderColor:'rgba(108,142,255,0.2)'}}>
-                  <div className="card-avatar" style={{background:'linear-gradient(135deg,#6C8EFF,#A78BFA)'}}>M</div>
-                  <div className="card-body">
-                    <div className="card-name">Mum — Vet appointment 🐶</div>
-                    <div className="card-detail">Buddy&apos;s check-up · Newlands Vet</div>
-                  </div>
-                  <div className="card-time">10:30</div>
-                </div>
-                <div className="today-card" style={{borderColor:'rgba(248,113,113,0.2)'}}>
-                  <div className="card-emoji" style={{background:'rgba(248,113,113,0.1)'}}>📋</div>
-                  <div className="card-body">
-                    <div className="card-name">Permission slip due Monday</div>
-                    <div className="card-detail">Isabel&apos;s Zoo excursion — sign by Mon 3 Mar</div>
-                  </div>
-                  <div className="card-tag" style={{background:'rgba(248,113,113,0.12)',color:'#F87171'}}>Urgent</div>
-                </div>
-              </div>
-            </div>
-
-            {/* TODAY'S TASKS */}
-            <div className="panel">
-              <div className="ph">
-                <div className="ph-left">
-                  <div className="ph-icon" style={{background:'rgba(52,211,153,0.15)'}}>✅</div>
-                  <div>
-                    <div className="ph-title">Today&apos;s Tasks</div>
-                    <div className="ph-sub">{doneCount} of {todayTasks.length} done</div>
-                  </div>
-                </div>
-                <a href="/tasks" className="ph-action">View all</a>
-              </div>
-              {todayTasks.length > 0 && (
-                <div className="task-progress">
-                  <div className="task-progress-fill" style={{width:`${todayTasks.length ? (doneCount/todayTasks.length)*100 : 0}%`}} />
-                </div>
-              )}
-              <div className="pb">
-                {todayTasks.length === 0 ? (
-                  <div className="empty-tasks">
-                    <span>✨</span>
-                    <p>Nothing due today!</p>
-                    <a href="/tasks" style={{fontSize:11, color:'var(--accent)', textDecoration:'none'}}>+ Add tasks</a>
-                  </div>
-                ) : todayTasks.filter(t => !isCompleted(t.id)).length === 0 ? (
-                  <div className="empty-tasks">
-                    <span>🎉</span>
-                    <p>All done for today!</p>
-                  </div>
-                ) : (
-                  todayTasks.filter(t => !isCompleted(t.id)).slice(0, 4).map(task => {
-                    const done = isCompleted(task.id)
-                    const primaryMember = task.assigned_to[0] as Member | undefined
-                    const style = primaryMember ? MEMBER_STYLES[primaryMember] : { color: '#94A3B8', bg: 'rgba(148,163,184,0.12)', label: '–', gradient: '' }
-                    return (
-                      <div key={task.id} className="task-row" onClick={() => toggleTask(task)}>
-                        <div className={`task-cb ${done ? 'done' : ''}`}>{done ? '✓' : ''}</div>
-                        <span style={{fontSize:14, flexShrink:0}}>{task.icon}</span>
-                        <div className={`task-text ${done ? 'done' : ''}`}>{task.title}</div>
-                        {primaryMember && (
-                          <div className="task-tag" style={{background:style.bg, color:style.color}}>{style.label}</div>
-                        )}
+                    <div className="weather-temp">18°</div>
+                    <div className="weather-desc">Partly Cloudy</div>
+                    <div className="weather-loc">📍 Wellington, NZ</div>
+                    <div className="weather-stats">
+                      <div>
+                        <div className="wstat-val">22°</div>
+                        <div className="wstat-lbl">High</div>
                       </div>
-                    )
-                  })
-                )}
-                {todayTasks.filter(t => !isCompleted(t.id)).length > 4 && (
-                  <a href="/tasks" style={{fontSize:11, color:'var(--muted)', textDecoration:'none', textAlign:'center', paddingTop:4}}>
-                    +{todayTasks.filter(t => !isCompleted(t.id)).length - 4} more · View all
-                  </a>
-                )}
-              </div>
-            </div>
-
-            {/* GOALS — desktop: ring chart, mobile: horizontal scroll chips */}
-            <div className="panel">
-              <div className="ph">
-                <div className="ph-left">
-                  <div className="ph-icon" style={{background:'rgba(167,139,250,0.15)'}}>🎯</div>
-                  <div>
-                    <div className="ph-title">Goals</div>
-                    <div className="ph-sub">4 active</div>
-                  </div>
-                </div>
-                <div className="ph-action">View all</div>
-              </div>
-              {/* Desktop goals */}
-              <div className="pb goals-desktop" style={{justifyContent:'center'}}>
-                <div style={{display:'flex',alignItems:'center',gap:16,flex:1}}>
-                  <div className="metric-ring">
-                    <svg width="76" height="76" viewBox="0 0 76 76">
-                      <circle fill="none" stroke="var(--card2)" strokeWidth="6" cx="38" cy="38" r="30"/>
-                      <circle fill="none" stroke="url(#goalGrad)" strokeWidth="6" strokeLinecap="round" cx="38" cy="38" r="30" strokeDasharray="188.5" strokeDashoffset="52"/>
-                      <defs>
-                        <linearGradient id="goalGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor="#6C8EFF"/><stop offset="100%" stopColor="#A78BFA"/>
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                    <div className="ring-label"><div className="rval">72%</div><div className="rlbl">Overall</div></div>
-                  </div>
-                  <div className="metric-row">
-                    {[
-                      {name:'🏖️ Holiday', pct:72, bg:'linear-gradient(90deg,#6C8EFF,#A78BFA)'},
-                      {name:'📚 Reading', pct:60, bg:'linear-gradient(90deg,#34D399,#22D3EE)'},
-                      {name:'⚽ Football', pct:40, bg:'linear-gradient(90deg,#F472B6,#A78BFA)'},
-                      {name:'🏋️ Garage',  pct:25, bg:'linear-gradient(90deg,#FBBF24,#F97316)'},
-                    ].map(g => (
-                      <div key={g.name}>
-                        <div className="mg-top"><div className="mg-name">{g.name}</div><div className="mg-pct">{g.pct}%</div></div>
-                        <div className="mg-track"><div className="mg-fill" style={{width:`${g.pct}%`,background:g.bg}} /></div>
+                      <div>
+                        <div className="wstat-val">14°</div>
+                        <div className="wstat-lbl">Low</div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              {/* Mobile goals — horizontal chips */}
-              <div className="goals-scroll">
-                {[
-                  {name:'🏖️ Holiday', pct:72, color:'#6C8EFF'},
-                  {name:'📚 Reading', pct:60, color:'#34D399'},
-                  {name:'⚽ Football', pct:40, color:'#F472B6'},
-                  {name:'🏋️ Garage',  pct:25, color:'#FBBF24'},
-                ].map(g => (
-                  <div key={g.name} className="goal-chip">
-                    <div className="goal-chip-pct" style={{color:g.color}}>{g.pct}%</div>
-                    <div className="goal-chip-name">{g.name}</div>
-                    <div className="goal-chip-bar">
-                      <div style={{height:'100%', width:`${g.pct}%`, background:g.color, borderRadius:99}} />
+                      <div>
+                        <div className="wstat-val">18km/h</div>
+                        <div className="wstat-lbl">Wind</div>
+                      </div>
                     </div>
                   </div>
-                ))}
+                  <div className="weather-icon-big">⛅</div>
+                </div>
+                <div className="weather-bottom">
+                  <div className="weather-tag" style={{background:'rgba(52,211,153,0.15)',color:'#34D399'}}>🌿 Good for outdoors</div>
+                  <div className="weather-tag" style={{background:'rgba(34,211,238,0.1)',color:'#22D3EE'}}>⚽ Football conditions</div>
+                </div>
               </div>
-            </div>
 
-            {/* TONIGHT'S MEAL */}
-            <div className="panel">
-              <div className="ph">
-                <div className="ph-left">
-                  <div className="ph-icon" style={{background:'rgba(244,114,182,0.15)'}}>🍽</div>
-                  <div>
-                    <div className="ph-title">Tonight&apos;s Meal</div>
-                    <div className="ph-sub">{new Date().toLocaleDateString('en-NZ', {weekday:'long'})}</div>
-                  </div>
-                </div>
-                <div className="ph-action">Week plan</div>
-              </div>
-              <div className="pb">
-                <div className="meal-hero">
-                  <div className="meal-emoji">🌮</div>
-                  <div className="meal-name">Taco Tuesday</div>
-                  <div className="meal-detail">Beef tacos · serves 4 · 30 mins</div>
-                  <div className="meal-tags">
-                    <div className="meal-tag" style={{background:'rgba(52,211,153,0.1)',color:'#34D399'}}>All planned</div>
-                    <div className="meal-tag" style={{background:'rgba(251,191,36,0.1)',color:'#FBBF24'}}>3 items needed</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* MONEY */}
-            <div className="panel">
-              <div className="ph">
-                <div className="ph-left">
-                  <div className="ph-icon" style={{background:'rgba(52,211,153,0.15)'}}>💰</div>
-                  <div>
-                    <div className="ph-title">Money</div>
-                    <div className="ph-sub">{new Date().toLocaleDateString('en-NZ',{month:'long'})}</div>
-                  </div>
-                </div>
-                <div className="ph-action">View all</div>
-              </div>
-              <div className="pb">
-                <div className="budget-split">
-                  <div className="bsplit"><div className="bval" style={{color:'#34D399'}}>$840</div><div className="blbl">Remaining</div></div>
-                  <div className="bsplit"><div className="bval" style={{color:'rgba(240,242,248,0.6)'}}>$4,200</div><div className="blbl">Budget</div></div>
-                </div>
-                <div className="spend-bar-wrap">
-                  {[
-                    {label:'🛒 Groceries', pct:85, color:'#34D399'},
-                    {label:'🏡 Bills',      pct:100, color:'#F87171'},
-                    {label:'🎉 Activities', pct:76, color:'#FBBF24'},
-                    {label:'🏖️ Savings',   pct:100, color:'#6C8EFF'},
-                  ].map(b => (
-                    <div key={b.label}>
-                      <div className="sbar-top"><div className="sbar-lbl">{b.label}</div><div className="sbar-num">{b.pct}%</div></div>
-                      <div className="sbar-track"><div className="sbar-fill" style={{width:`${b.pct}%`,background:b.color}} /></div>
+              {/* WHAT TO WEAR */}
+              <div className="section-card">
+                <div className="section-label">👕 What to wear today</div>
+                <div className="uniform-grid">
+                  <div className="uniform-item highlight">
+                    <div className="uniform-child">
+                      <div className="uniform-avatar" style={{background:'linear-gradient(135deg,#FBBF24,#F97316)'}}>I</div>
+                      <div className="uniform-name">Isabel</div>
                     </div>
-                  ))}
+                    <div className="uniform-type">👟</div>
+                    <div className="uniform-detail">PE gear + sports shoes. Water bottle!</div>
+                    <div className="uniform-badge" style={{background:'rgba(251,191,36,0.15)',color:'#FBBF24'}}>PE Day</div>
+                  </div>
+                  <div className="uniform-item">
+                    <div className="uniform-child">
+                      <div className="uniform-avatar" style={{background:'linear-gradient(135deg,#F472B6,#A78BFA)'}}>J</div>
+                      <div className="uniform-name">James</div>
+                    </div>
+                    <div className="uniform-type">👕</div>
+                    <div className="uniform-detail">Regular uniform. Reading folder in bag.</div>
+                    <div className="uniform-badge" style={{background:'rgba(255,255,255,0.06)',color:'rgba(240,242,248,0.5)'}}>Normal</div>
+                  </div>
                 </div>
               </div>
-            </div>
 
+              {/* TODAY'S EVENTS */}
+              <div className="section-card">
+                <div className="section-label">📅 Today&apos;s events</div>
+
+                <div className="event-item" style={{opacity:0.45}}>
+                  <div className="event-time-col">
+                    <div className="event-time" style={{color:'var(--muted)'}}>7:30</div>
+                    <div className="event-ampm">am</div>
+                  </div>
+                  <div className="event-dot" style={{background:'#444'}} />
+                  <div className="event-info">
+                    <div className="event-name done">School drop-off</div>
+                    <div className="event-detail">Done ✓</div>
+                  </div>
+                  <div className="event-who" style={{background:'rgba(255,255,255,0.05)',color:'rgba(240,242,248,0.3)'}}>Dad</div>
+                </div>
+
+                <div className="event-item current">
+                  <div className="event-time-col">
+                    <div className="event-time" style={{color:'#6C8EFF'}}>9:00</div>
+                    <div className="event-ampm">am</div>
+                  </div>
+                  <div className="event-dot glow" style={{background:'#6C8EFF'}} />
+                  <div className="event-info">
+                    <div className="event-name">Grocery run 🛒</div>
+                    <div className="event-detail">Countdown Khandallah · Now</div>
+                  </div>
+                  <div className="event-who" style={{background:'rgba(108,142,255,0.15)',color:'#6C8EFF'}}>Mum</div>
+                </div>
+
+                <div className="event-item">
+                  <div className="event-time-col">
+                    <div className="event-time">10:30</div>
+                    <div className="event-ampm">am</div>
+                  </div>
+                  <div className="event-dot" style={{background:'#6C8EFF'}} />
+                  <div className="event-info">
+                    <div className="event-name">Vet appointment 🐶</div>
+                    <div className="event-detail">Buddy · Newlands Vet · 45 mins</div>
+                  </div>
+                  <div className="event-who" style={{background:'rgba(108,142,255,0.15)',color:'#6C8EFF'}}>Mum</div>
+                </div>
+
+                <div className="event-item">
+                  <div className="event-time-col">
+                    <div className="event-time">3:10</div>
+                    <div className="event-ampm">pm</div>
+                  </div>
+                  <div className="event-dot" style={{background:'#FBBF24'}} />
+                  <div className="event-info">
+                    <div className="event-name">School pick-up 🚗</div>
+                    <div className="event-detail">Oak Street · Both kids</div>
+                  </div>
+                  <div className="event-who" style={{background:'rgba(251,191,36,0.12)',color:'#FBBF24'}}>Dad</div>
+                </div>
+
+                <div className="event-item">
+                  <div className="event-time-col">
+                    <div className="event-time">4:30</div>
+                    <div className="event-ampm">pm</div>
+                  </div>
+                  <div className="event-dot" style={{background:'#34D399'}} />
+                  <div className="event-info">
+                    <div className="event-name">Football training ⚽</div>
+                    <div className="event-detail">Newlands Park · James</div>
+                  </div>
+                  <div className="event-who" style={{background:'rgba(52,211,153,0.12)',color:'#34D399'}}>Dad</div>
+                </div>
+
+                <div className="event-item">
+                  <div className="event-time-col">
+                    <div className="event-time">6:30</div>
+                    <div className="event-ampm">pm</div>
+                  </div>
+                  <div className="event-dot" style={{background:'#F472B6'}} />
+                  <div className="event-info">
+                    <div className="event-name">Dinner together 🌮</div>
+                    <div className="event-detail">Taco Tuesday · Everyone</div>
+                  </div>
+                  <div className="event-who" style={{background:'rgba(244,114,182,0.12)',color:'#F472B6'}}>All</div>
+                </div>
+              </div>
+
+              {/* DAILY QUOTE */}
+              <div className="quote-card">
+                <div className="quote-emoji">💫</div>
+                <div className="quote-text">&ldquo;Teamwork makes the dream work&rdquo;</div>
+                <div className="quote-author" suppressHydrationWarning>
+                  Daily family quote · {new Date().toLocaleDateString('en-NZ', {weekday: 'long'})}
+                </div>
+              </div>
+
+            </div>
           </div>
         </div>
-
 
       </div>
     </>
