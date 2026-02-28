@@ -110,10 +110,11 @@ function getGreeting() {
 }
 
 const navItems = [
-  { id: 'tasks',    icon: '✅', label: 'Tasks',    href: '/tasks'  },
+  { id: 'tasks',    icon: '✅', label: 'Tasks',    href: '/tasks'    },
   { id: 'schedule', icon: '📅', label: 'Calendar', href: '/calendar' },
-  { id: 'meals',    icon: '🍴', label: 'Food',     href: null      },
-  { id: 'money',    icon: '💰', label: 'Money',    href: null      },
+  { id: 'meals',    icon: '🍴', label: 'Food',     href: null        },
+  { id: 'money',    icon: '💰', label: 'Money',    href: null        },
+  { id: 'chat',     icon: '💬', label: 'Chat',     href: '/chat'     },
 ]
 
 const FAMILY = [
