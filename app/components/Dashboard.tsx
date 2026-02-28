@@ -140,7 +140,12 @@ export default function Dashboard() {
   useEffect(() => {
     try {
       const stored = localStorage.getItem('familyUser')
-      if (stored) setCurrentUser(JSON.parse(stored))
+      if (stored) {
+        const user = JSON.parse(stored)
+        setCurrentUser(user)
+        const memberId = FAMILY.find(m => m.label === user.name)?.id
+        if (memberId) setActiveMember(memberId)
+      }
     } catch { /* ignore */ }
   }, [])
 
@@ -192,10 +197,9 @@ export default function Dashboard() {
     return () => { supabase.removeChannel(ch) }
   }, [])
 
-  const currentMemberId = FAMILY.find(m => m.label === currentUser?.name)?.id as Member | undefined
   const todayTasks = tasks
     .filter(isTaskDueToday)
-    .filter(t => !currentMemberId || t.assigned_to.includes(currentMemberId))
+    .filter(t => t.assigned_to.includes(activeMember as Member))
   const isCompleted = (taskId: string) => completions.some(c => c.task_id === taskId)
   const doneCount = todayTasks.filter(t => isCompleted(t.id)).length
   const remainingCount = todayTasks.length - doneCount
