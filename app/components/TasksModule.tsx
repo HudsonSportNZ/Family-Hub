@@ -60,7 +60,9 @@ const CATEGORIES = [
 ]
 
 const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const TODAY = new Date().toISOString().split('T')[0]
+function getToday(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Pacific/Auckland' })
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getMember(id: Member) {
@@ -69,7 +71,7 @@ function getMember(id: Member) {
 
 function isTaskDueOnDate(task: Task, date: Date): boolean {
   if (!task.is_active) return false
-  const dateStr = date.toISOString().split('T')[0]
+  const dateStr = date.toLocaleDateString('en-CA', { timeZone: 'Pacific/Auckland' })
   const dayOfWeek = date.getDay()
   const dayOfMonth = date.getDate()
   switch (task.recurrence) {
@@ -131,9 +133,9 @@ function blankTask(): Partial<Task> {
     recurrence: 'once',
     recurrence_days: [],
     recurrence_day_of_month: undefined,
-    due_date: TODAY,
+    due_date: getToday(),
     due_time: '',
-    start_date: TODAY,
+    start_date: getToday(),
     is_active: true,
     priority: 'normal',
     category: 'general',
@@ -161,7 +163,7 @@ export default function TasksModule() {
     setLoading(true)
     const [{ data: taskData, error: taskError }, { data: completionData }] = await Promise.all([
       supabase.from('tasks').select('*').order('created_at', { ascending: false }),
-      supabase.from('task_completions').select('*').eq('completed_for_date', TODAY),
+      supabase.from('task_completions').select('*').eq('completed_for_date', getToday()),
     ])
     if (taskError) console.error('Task fetch error:', taskError)
     setTasks((taskData as Task[]) ?? [])
@@ -182,7 +184,7 @@ export default function TasksModule() {
     } else {
       const { data } = await supabase
         .from('task_completions')
-        .insert({ task_id: task.id, completed_by: member, completed_for_date: TODAY })
+        .insert({ task_id: task.id, completed_by: member, completed_for_date: getToday() })
         .select()
         .single()
       if (data) setCompletions(prev => [...prev, data as TaskCompletion])
@@ -203,9 +205,9 @@ export default function TasksModule() {
       recurrence: form.recurrence ?? 'once',
       recurrence_days: form.recurrence === 'weekly' ? (form.recurrence_days ?? []) : null,
       recurrence_day_of_month: form.recurrence === 'monthly' ? (form.recurrence_day_of_month ?? null) : null,
-      due_date: form.recurrence === 'once' ? (form.due_date ?? TODAY) : null,
+      due_date: form.recurrence === 'once' ? (form.due_date ?? getToday()) : null,
       due_time: form.due_time?.trim() || null,
-      start_date: form.start_date ?? TODAY,
+      start_date: form.start_date ?? getToday(),
       is_active: true,
       priority: form.priority ?? 'normal',
       category: form.category ?? 'general',
@@ -744,7 +746,7 @@ function TaskForm({ form, setForm, editing, saving, error, onSave, onClose, onTo
           {form.recurrence === 'once' && (
             <>
               <label style={styles.label}>Due date</label>
-              <input type="date" value={form.due_date ?? TODAY} onChange={e => f('due_date', e.target.value)} style={styles.input} />
+              <input type="date" value={form.due_date ?? getToday()} onChange={e => f('due_date', e.target.value)} style={styles.input} />
             </>
           )}
 
