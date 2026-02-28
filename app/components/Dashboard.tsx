@@ -192,7 +192,10 @@ export default function Dashboard() {
     return () => { supabase.removeChannel(ch) }
   }, [])
 
-  const todayTasks = tasks.filter(isTaskDueToday)
+  const currentMemberId = FAMILY.find(m => m.label === currentUser?.name)?.id as Member | undefined
+  const todayTasks = tasks
+    .filter(isTaskDueToday)
+    .filter(t => !currentMemberId || t.assigned_to.includes(currentMemberId))
   const isCompleted = (taskId: string) => completions.some(c => c.task_id === taskId)
   const doneCount = todayTasks.filter(t => isCompleted(t.id)).length
   const remainingCount = todayTasks.length - doneCount
