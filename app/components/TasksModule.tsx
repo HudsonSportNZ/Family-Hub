@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
 
-// ─── Supabase client ──────────────────────────────────────────────────────────
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -20,8 +19,8 @@ interface Task {
   description?: string
   assigned_to: Member[]
   recurrence: Recurrence
-  recurrence_days?: number[]       // for weekly: 0=Sun…6=Sat
-  recurrence_day_of_month?: number // for monthly
+  recurrence_days?: number[]
+  recurrence_day_of_month?: number
   recurrence_custom_label?: string
   due_date?: string
   due_time?: string
@@ -76,11 +75,15 @@ function isTaskDueToday(task: Task): boolean {
     case 'daily':
       return true
     case 'weekly':
-      return (task.recurrence_days ?? []).includes(dayOfWeek)
+      // FIX: if no days are set, show every day as fallback
+      if (!task.recurrence_days || task.recurrence_days.length === 0) return true
+      return task.recurrence_days.includes(dayOfWeek)
     case 'monthly':
+      // FIX: if no day set, show on 1st of month as fallback
+      if (!task.recurrence_day_of_month) return dayOfMonth === 1
       return task.recurrence_day_of_month === dayOfMonth
     case 'custom':
-      return true // show all custom tasks — user decides
+      return true
     case 'once':
       return task.due_date === TODAY
     default:
@@ -94,7 +97,7 @@ function recurrenceLabel(task: Task): string {
     case 'daily':   return 'Every day'
     case 'weekly': {
       const days = (task.recurrence_days ?? []).map(d => DAYS_SHORT[d]).join(', ')
-      return days ? `Weekly · ${days}` : 'Weekly'
+      return days ? `Weekly · ${days}` : 'Every week'
     }
     case 'monthly':
       return task.recurrence_day_of_month
@@ -114,7 +117,6 @@ function priorityColor(p: Priority) {
   return p === 'high' ? '#F87171' : p === 'low' ? '#6B7280' : '#6C8EFF'
 }
 
-// ─── Blank task form state ────────────────────────────────────────────────────
 function blankTask(): Partial<Task> {
   return {
     title: '',
@@ -146,14 +148,15 @@ export default function TasksModule() {
   const [form, setForm] = useState<Partial<Task>>(blankTask())
   const [saving, setSaving] = useState(false)
   const [activeCategory, setActiveCategory] = useState<string>('all')
+  const [error, setError] = useState<string | null>(null)
 
-  // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
     setLoading(true)
-    const [{ data: taskData }, { data: completionData }] = await Promise.all([
+    const [{ data: taskData, error: taskError }, { data: completionData }] = await Promise.all([
       supabase.from('tasks').select('*').order('created_at', { ascending: false }),
       supabase.from('task_completions').select('*').eq('completed_for_date', TODAY),
     ])
+    if (taskError) console.error('Task fetch error:', taskError)
     setTasks((taskData as Task[]) ?? [])
     setCompletions((completionData as TaskCompletion[]) ?? [])
     setLoading(false)
@@ -161,12 +164,8 @@ export default function TasksModule() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  // ── Completion ─────────────────────────────────────────────────────────────
-  const isCompleted = (taskId: string) =>
-    completions.some(c => c.task_id === taskId)
-
-  const getCompletedBy = (taskId: string) =>
-    completions.find(c => c.task_id === taskId)?.completed_by
+  const isCompleted = (taskId: string) => completions.some(c => c.task_id === taskId)
+  const getCompletedBy = (taskId: string) => completions.find(c => c.task_id === taskId)?.completed_by
 
   const toggleComplete = async (task: Task, member: Member) => {
     const existing = completions.find(c => c.task_id === task.id)
@@ -183,20 +182,25 @@ export default function TasksModule() {
     }
   }
 
-  // ── Save / Delete ──────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (!form.title?.trim()) return
     setSaving(true)
+    setError(null)
+
+    // FIX: ensure assigned_to is always a proper array of strings
+    const assignedTo = (form.assigned_to ?? []).filter(Boolean)
+
     const payload = {
-      title: form.title,
-      description: form.description || null,
-      assigned_to: form.assigned_to ?? [],
+      title: form.title.trim(),
+      description: form.description?.trim() || null,
+      assigned_to: assignedTo,
       recurrence: form.recurrence ?? 'once',
-      recurrence_days: form.recurrence === 'weekly' ? form.recurrence_days : null,
-      recurrence_day_of_month: form.recurrence === 'monthly' ? form.recurrence_day_of_month : null,
-      recurrence_custom_label: form.recurrence === 'custom' ? form.recurrence_custom_label : null,
-      due_date: form.recurrence === 'once' ? form.due_date : null,
-      due_time: form.due_time || null,
+      // FIX: only include recurrence sub-fields when relevant
+      recurrence_days: form.recurrence === 'weekly' ? (form.recurrence_days ?? []) : null,
+      recurrence_day_of_month: form.recurrence === 'monthly' ? (form.recurrence_day_of_month ?? null) : null,
+      recurrence_custom_label: form.recurrence === 'custom' ? (form.recurrence_custom_label?.trim() ?? null) : null,
+      due_date: form.recurrence === 'once' ? (form.due_date ?? TODAY) : null,
+      due_time: form.due_time?.trim() || null,
       start_date: form.start_date ?? TODAY,
       is_active: true,
       priority: form.priority ?? 'normal',
@@ -204,17 +208,31 @@ export default function TasksModule() {
       icon: form.icon ?? '✓',
     }
 
+    console.log('Saving task payload:', payload)
+
     if (editingTask) {
-      const { data } = await supabase
+      const { data, error: updateError } = await supabase
         .from('tasks').update(payload).eq('id', editingTask.id).select().single()
-      if (data) setTasks(prev => prev.map(t => t.id === editingTask.id ? data as Task : t))
+      if (updateError) {
+        console.error('Update error:', updateError)
+        setError(`Save failed: ${updateError.message}`)
+      } else if (data) {
+        setTasks(prev => prev.map(t => t.id === editingTask.id ? data as Task : t))
+        closeForm()
+      }
     } else {
-      const { data } = await supabase.from('tasks').insert(payload).select().single()
-      if (data) setTasks(prev => [data as Task, ...prev])
+      const { data, error: insertError } = await supabase
+        .from('tasks').insert(payload).select().single()
+      if (insertError) {
+        console.error('Insert error:', insertError)
+        setError(`Save failed: ${insertError.message}`)
+      } else if (data) {
+        setTasks(prev => [data as Task, ...prev])
+        closeForm()
+      }
     }
 
     setSaving(false)
-    closeForm()
   }
 
   const handleDelete = async (taskId: string) => {
@@ -228,16 +246,17 @@ export default function TasksModule() {
     if (data) setTasks(prev => prev.map(t => t.id === task.id ? data as Task : t))
   }
 
-  // ── Form helpers ───────────────────────────────────────────────────────────
   const openNew = () => {
     setEditingTask(null)
     setForm(blankTask())
+    setError(null)
     setShowForm(true)
   }
 
   const openEdit = (task: Task) => {
     setEditingTask(task)
     setForm({ ...task })
+    setError(null)
     setShowForm(true)
   }
 
@@ -245,27 +264,32 @@ export default function TasksModule() {
     setShowForm(false)
     setEditingTask(null)
     setForm(blankTask())
+    setError(null)
   }
 
+  // FIX: robust toggle that works correctly with string comparison
   const toggleFormMember = (m: Member) => {
-    setForm(prev => ({
-      ...prev,
-      assigned_to: prev.assigned_to?.includes(m)
-        ? prev.assigned_to.filter(x => x !== m)
-        : [...(prev.assigned_to ?? []), m],
-    }))
+    setForm(prev => {
+      const current = prev.assigned_to ?? []
+      const already = current.includes(m)
+      return {
+        ...prev,
+        assigned_to: already ? current.filter(x => x !== m) : [...current, m],
+      }
+    })
   }
 
   const toggleFormDay = (d: number) => {
-    setForm(prev => ({
-      ...prev,
-      recurrence_days: prev.recurrence_days?.includes(d)
-        ? prev.recurrence_days.filter(x => x !== d)
-        : [...(prev.recurrence_days ?? []), d],
-    }))
+    setForm(prev => {
+      const current = prev.recurrence_days ?? []
+      const already = current.includes(d)
+      return {
+        ...prev,
+        recurrence_days: already ? current.filter(x => x !== d) : [...current, d],
+      }
+    })
   }
 
-  // ── Filtered lists ─────────────────────────────────────────────────────────
   const todayTasks = tasks.filter(isTaskDueToday)
 
   const filteredTasks = (view === 'today' ? todayTasks : tasks).filter(t => {
@@ -276,13 +300,10 @@ export default function TasksModule() {
 
   const completedCount = todayTasks.filter(t => isCompleted(t.id)).length
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // RENDER
-  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div style={{ fontFamily: "'Syne', 'Inter', sans-serif", color: '#F1F5F9', minHeight: '100vh' }}>
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: '-0.5px' }}>Tasks</h1>
@@ -290,12 +311,10 @@ export default function TasksModule() {
             {completedCount}/{todayTasks.length} done today
           </p>
         </div>
-        <button onClick={openNew} style={styles.addBtn}>
-          + Add Task
-        </button>
+        <button onClick={openNew} style={styles.addBtn}>+ Add Task</button>
       </div>
 
-      {/* ── Progress bar ── */}
+      {/* Progress bar */}
       {todayTasks.length > 0 && (
         <div style={{ marginBottom: 24 }}>
           <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 99, overflow: 'hidden' }}>
@@ -310,48 +329,35 @@ export default function TasksModule() {
         </div>
       )}
 
-      {/* ── View tabs ── */}
+      {/* View tabs */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         {(['today', 'all', 'by-member'] as const).map(v => (
-          <button key={v} onClick={() => setView(v)} style={{
-            ...styles.tab,
-            ...(view === v ? styles.tabActive : {}),
-          }}>
+          <button key={v} onClick={() => setView(v)} style={{ ...styles.tab, ...(view === v ? styles.tabActive : {}) }}>
             {v === 'today' ? '📅 Today' : v === 'all' ? '📋 All Tasks' : '👨‍👩‍👧‍👦 By Member'}
           </button>
         ))}
       </div>
 
-      {/* ── Category filter ── */}
+      {/* Category filter */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, overflowX: 'auto', paddingBottom: 4 }}>
-        <button onClick={() => setActiveCategory('all')} style={{
-          ...styles.chip,
-          ...(activeCategory === 'all' ? styles.chipActive : {}),
-        }}>All</button>
+        <button onClick={() => setActiveCategory('all')} style={{ ...styles.chip, ...(activeCategory === 'all' ? styles.chipActive : {}) }}>All</button>
         {CATEGORIES.map(c => (
-          <button key={c.value} onClick={() => setActiveCategory(c.value)} style={{
-            ...styles.chip,
-            ...(activeCategory === c.value ? styles.chipActive : {}),
-          }}>
+          <button key={c.value} onClick={() => setActiveCategory(c.value)} style={{ ...styles.chip, ...(activeCategory === c.value ? styles.chipActive : {}) }}>
             {c.icon} {c.label}
           </button>
         ))}
       </div>
 
-      {/* ── Member filter (by-member view) ── */}
+      {/* Member filter */}
       {view === 'by-member' && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
           {MEMBERS.map(m => (
             <button key={m.id} onClick={() => setFilterMember(filterMember === m.id ? null : m.id)} style={{
-              padding: '6px 14px',
-              borderRadius: 99,
+              padding: '6px 14px', borderRadius: 99,
               border: `2px solid ${filterMember === m.id ? m.color : 'rgba(255,255,255,0.1)'}`,
               background: filterMember === m.id ? m.bg : 'transparent',
               color: filterMember === m.id ? m.color : '#94A3B8',
-              cursor: 'pointer',
-              fontSize: 13,
-              fontWeight: 600,
-              transition: 'all 0.15s',
+              cursor: 'pointer', fontSize: 13, fontWeight: 600, transition: 'all 0.15s',
             }}>
               {m.name}
             </button>
@@ -359,7 +365,7 @@ export default function TasksModule() {
         </div>
       )}
 
-      {/* ── Task list ── */}
+      {/* Task list */}
       {loading ? (
         <div style={{ textAlign: 'center', color: '#475569', paddingTop: 48 }}>Loading tasks…</div>
       ) : filteredTasks.length === 0 ? (
@@ -386,13 +392,14 @@ export default function TasksModule() {
         </div>
       )}
 
-      {/* ── Add / Edit form modal ── */}
+      {/* Form modal */}
       {showForm && (
         <TaskForm
           form={form}
           setForm={setForm}
           editing={!!editingTask}
           saving={saving}
+          error={error}
           onSave={handleSave}
           onClose={closeForm}
           onToggleMember={toggleFormMember}
@@ -404,10 +411,7 @@ export default function TasksModule() {
 }
 
 // ─── Task Card ────────────────────────────────────────────────────────────────
-function TaskCard({
-  task, completed, completedBy,
-  onToggle, onEdit, onDelete, onArchive,
-}: {
+function TaskCard({ task, completed, completedBy, onToggle, onEdit, onDelete, onArchive }: {
   task: Task
   completed: boolean
   completedBy?: Member
@@ -416,50 +420,36 @@ function TaskCard({
   onDelete: (id: string) => void
   onArchive: (task: Task) => void
 }) {
-  const [expanded, setExpanded] = useState(false)
   const [showActions, setShowActions] = useState(false)
-
   const primaryMember = task.assigned_to[0] as Member | undefined
-  const memberData = primaryMember ? getMember(primaryMember) : null
 
   return (
     <div style={{
-      background: completed
-        ? 'rgba(52,211,153,0.06)'
-        : task.is_active ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
+      background: completed ? 'rgba(52,211,153,0.06)' : task.is_active ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
       border: `1px solid ${completed ? 'rgba(52,211,153,0.2)' : 'rgba(255,255,255,0.08)'}`,
       borderRadius: 14,
       overflow: 'hidden',
-      transition: 'all 0.2s',
       opacity: task.is_active ? 1 : 0.5,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px' }}>
-
-        {/* Complete button */}
         <button
           onClick={() => onToggle(task, primaryMember ?? 'M')}
           style={{
-            width: 28, height: 28,
-            borderRadius: '50%',
+            width: 28, height: 28, borderRadius: '50%',
             border: `2px solid ${completed ? '#34D399' : 'rgba(255,255,255,0.2)'}`,
             background: completed ? '#34D399' : 'transparent',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer',
-            flexShrink: 0,
-            transition: 'all 0.2s',
-            fontSize: 13,
+            cursor: 'pointer', flexShrink: 0, transition: 'all 0.2s', fontSize: 13,
           }}
         >
           {completed && <span style={{ color: '#0F172A', fontWeight: 900 }}>✓</span>}
         </button>
 
-        {/* Icon + title */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 16 }}>{task.icon}</span>
             <span style={{
-              fontWeight: 700,
-              fontSize: 15,
+              fontWeight: 700, fontSize: 15,
               textDecoration: completed ? 'line-through' : 'none',
               color: completed ? '#475569' : '#F1F5F9',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -473,28 +463,23 @@ function TaskCard({
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 11, color: '#64748B' }}>{recurrenceLabel(task)}</span>
             {completed && completedBy && (
-              <span style={{ fontSize: 11, color: '#34D399' }}>
-                ✓ {getMember(completedBy).name}
-              </span>
+              <span style={{ fontSize: 11, color: '#34D399' }}>✓ {getMember(completedBy).name}</span>
             )}
           </div>
         </div>
 
         {/* Member avatars */}
-        <div style={{ display: 'flex', gap: -4, flexShrink: 0 }}>
+        <div style={{ display: 'flex', flexShrink: 0 }}>
           {task.assigned_to.slice(0, 3).map((m, i) => {
             const mem = getMember(m as Member)
+            if (!mem) return null
             return (
-              <div key={m} style={{
-                width: 24, height: 24,
-                borderRadius: '50%',
-                background: mem.bg,
-                border: `2px solid ${mem.color}`,
+              <div key={`${m}-${i}`} style={{
+                width: 24, height: 24, borderRadius: '50%',
+                background: mem.bg, border: `2px solid ${mem.color}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 10, fontWeight: 800, color: mem.color,
-                marginLeft: i > 0 ? -6 : 0,
-                zIndex: 3 - i,
-                position: 'relative',
+                marginLeft: i > 0 ? -6 : 0, zIndex: 3 - i, position: 'relative',
               }}>
                 {m}
               </div>
@@ -502,7 +487,6 @@ function TaskCard({
           })}
         </div>
 
-        {/* Expand / actions */}
         <button
           onClick={() => setShowActions(!showActions)}
           style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', padding: 4, fontSize: 18, lineHeight: 1 }}
@@ -511,7 +495,6 @@ function TaskCard({
         </button>
       </div>
 
-      {/* Actions drawer */}
       {showActions && (
         <div style={{
           borderTop: '1px solid rgba(255,255,255,0.06)',
@@ -519,29 +502,22 @@ function TaskCard({
           display: 'flex', gap: 8, flexWrap: 'wrap',
           background: 'rgba(0,0,0,0.15)',
         }}>
-          {/* Mark complete as specific member */}
           <span style={{ fontSize: 11, color: '#64748B', alignSelf: 'center' }}>Mark done by:</span>
           {task.assigned_to.map(m => {
             const mem = getMember(m as Member)
+            if (!mem) return null
             return (
               <button key={m} onClick={() => { onToggle(task, m as Member); setShowActions(false) }} style={{
-                padding: '4px 10px',
-                borderRadius: 99,
-                border: `1.5px solid ${mem.color}`,
-                background: mem.bg,
-                color: mem.color,
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 700,
+                padding: '4px 10px', borderRadius: 99,
+                border: `1.5px solid ${mem.color}`, background: mem.bg,
+                color: mem.color, cursor: 'pointer', fontSize: 12, fontWeight: 700,
               }}>
                 {mem.name}
               </button>
             )
           })}
           <div style={{ flex: 1 }} />
-          <button onClick={() => { onEdit(task); setShowActions(false) }} style={styles.actionBtn}>
-            ✏️ Edit
-          </button>
+          <button onClick={() => { onEdit(task); setShowActions(false) }} style={styles.actionBtn}>✏️ Edit</button>
           <button onClick={() => { onArchive(task); setShowActions(false) }} style={styles.actionBtn}>
             {task.is_active ? '📦 Archive' : '♻️ Restore'}
           </button>
@@ -555,20 +531,18 @@ function TaskCard({
 }
 
 // ─── Task Form ────────────────────────────────────────────────────────────────
-function TaskForm({
-  form, setForm, editing, saving,
-  onSave, onClose, onToggleMember, onToggleDay,
-}: {
+function TaskForm({ form, setForm, editing, saving, error, onSave, onClose, onToggleMember, onToggleDay }: {
   form: Partial<Task>
   setForm: React.Dispatch<React.SetStateAction<Partial<Task>>>
   editing: boolean
   saving: boolean
+  error: string | null
   onSave: () => void
   onClose: () => void
   onToggleMember: (m: Member) => void
   onToggleDay: (d: number) => void
 }) {
-  const f = (field: keyof Task, value: any) =>
+  const f = (field: keyof Task, value: unknown) =>
     setForm(prev => ({ ...prev, [field]: value }))
 
   const ICONS = ['✓', '🧹', '🎒', '🛒', '💡', '🍽️', '🐱', '❤️', '📚', '🚗', '💊', '🏃', '🌱', '📞', '🔧']
@@ -581,22 +555,26 @@ function TaskForm({
       backdropFilter: 'blur(4px)',
     }} onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={{
-        width: '100%',
-        maxWidth: 600,
-        margin: '0 auto',
-        background: '#0F172A',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: '20px 20px 0 0',
-        padding: 24,
-        maxHeight: '90vh',
-        overflowY: 'auto',
+        width: '100%', maxWidth: 600, margin: '0 auto',
+        background: '#0F172A', border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: '20px 20px 0 0', padding: 24,
+        maxHeight: '92vh', overflowY: 'auto',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>
-            {editing ? 'Edit Task' : 'New Task'}
-          </h2>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{editing ? 'Edit Task' : 'New Task'}</h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', fontSize: 20 }}>✕</button>
         </div>
+
+        {/* Error message */}
+        {error && (
+          <div style={{
+            background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)',
+            borderRadius: 10, padding: '10px 14px', marginBottom: 16,
+            color: '#F87171', fontSize: 13,
+          }}>
+            ⚠️ {error}
+          </div>
+        )}
 
         {/* Title */}
         <label style={styles.label}>Task title *</label>
@@ -608,7 +586,7 @@ function TaskForm({
           autoFocus
         />
 
-        {/* Icon picker */}
+        {/* Icon */}
         <label style={styles.label}>Icon</label>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
           {ICONS.map(icon => (
@@ -632,24 +610,24 @@ function TaskForm({
           style={styles.input}
         />
 
-        {/* Assign to */}
+        {/* Assign to — FIX: show selected state clearly */}
         <label style={styles.label}>Assign to</label>
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          {MEMBERS.map(m => (
-            <button key={m.id} onClick={() => onToggleMember(m.id)} style={{
-              flex: 1,
-              padding: '8px 4px',
-              borderRadius: 10,
-              border: `2px solid ${form.assigned_to?.includes(m.id) ? m.color : 'rgba(255,255,255,0.1)'}`,
-              background: form.assigned_to?.includes(m.id) ? m.bg : 'transparent',
-              color: form.assigned_to?.includes(m.id) ? m.color : '#64748B',
-              cursor: 'pointer',
-              fontWeight: 700,
-              fontSize: 13,
-            }}>
-              {m.name}
-            </button>
-          ))}
+          {MEMBERS.map(m => {
+            const isSelected = (form.assigned_to ?? []).includes(m.id)
+            return (
+              <button key={m.id} onClick={() => onToggleMember(m.id)} style={{
+                flex: 1, padding: '10px 4px', borderRadius: 10,
+                border: `2px solid ${isSelected ? m.color : 'rgba(255,255,255,0.1)'}`,
+                background: isSelected ? m.bg : 'transparent',
+                color: isSelected ? m.color : '#64748B',
+                cursor: 'pointer', fontWeight: 700, fontSize: 13,
+                transition: 'all 0.15s',
+              }}>
+                {isSelected ? '✓ ' : ''}{m.name}
+              </button>
+            )
+          })}
         </div>
 
         {/* Category */}
@@ -657,8 +635,7 @@ function TaskForm({
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
           {CATEGORIES.map(c => (
             <button key={c.value} onClick={() => f('category', c.value)} style={{
-              ...styles.chip,
-              ...(form.category === c.value ? styles.chipActive : {}),
+              ...styles.chip, ...(form.category === c.value ? styles.chipActive : {}),
             }}>
               {c.icon} {c.label}
             </button>
@@ -670,16 +647,11 @@ function TaskForm({
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           {(['low', 'normal', 'high'] as Priority[]).map(p => (
             <button key={p} onClick={() => f('priority', p)} style={{
-              flex: 1,
-              padding: '8px',
-              borderRadius: 10,
+              flex: 1, padding: '8px', borderRadius: 10,
               border: `2px solid ${form.priority === p ? priorityColor(p) : 'rgba(255,255,255,0.1)'}`,
               background: form.priority === p ? `${priorityColor(p)}20` : 'transparent',
               color: form.priority === p ? priorityColor(p) : '#64748B',
-              cursor: 'pointer',
-              fontWeight: 700,
-              fontSize: 13,
-              textTransform: 'capitalize',
+              cursor: 'pointer', fontWeight: 700, fontSize: 13, textTransform: 'capitalize',
             }}>
               {p}
             </button>
@@ -691,15 +663,13 @@ function TaskForm({
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
           {(['once', 'daily', 'weekly', 'monthly', 'custom'] as Recurrence[]).map(r => (
             <button key={r} onClick={() => f('recurrence', r)} style={{
-              ...styles.chip,
-              ...(form.recurrence === r ? styles.chipActive : {}),
+              ...styles.chip, ...(form.recurrence === r ? styles.chipActive : {}),
             }}>
               {r === 'once' ? '1️⃣ Once' : r === 'daily' ? '☀️ Daily' : r === 'weekly' ? '📅 Weekly' : r === 'monthly' ? '🗓️ Monthly' : '⚙️ Custom'}
             </button>
           ))}
         </div>
 
-        {/* Recurrence sub-options */}
         {form.recurrence === 'once' && (
           <>
             <label style={styles.label}>Due date</label>
@@ -709,19 +679,15 @@ function TaskForm({
 
         {form.recurrence === 'weekly' && (
           <>
-            <label style={styles.label}>Which days?</label>
+            <label style={styles.label}>Which days? (leave blank for every day)</label>
             <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
               {DAYS_SHORT.map((day, i) => (
                 <button key={i} onClick={() => onToggleDay(i)} style={{
-                  flex: 1,
-                  padding: '8px 2px',
-                  borderRadius: 8,
-                  border: `2px solid ${form.recurrence_days?.includes(i) ? '#6C8EFF' : 'rgba(255,255,255,0.1)'}`,
-                  background: form.recurrence_days?.includes(i) ? 'rgba(108,142,255,0.15)' : 'transparent',
-                  color: form.recurrence_days?.includes(i) ? '#6C8EFF' : '#64748B',
-                  cursor: 'pointer',
-                  fontSize: 11,
-                  fontWeight: 700,
+                  flex: 1, padding: '8px 2px', borderRadius: 8,
+                  border: `2px solid ${(form.recurrence_days ?? []).includes(i) ? '#6C8EFF' : 'rgba(255,255,255,0.1)'}`,
+                  background: (form.recurrence_days ?? []).includes(i) ? 'rgba(108,142,255,0.15)' : 'transparent',
+                  color: (form.recurrence_days ?? []).includes(i) ? '#6C8EFF' : '#64748B',
+                  cursor: 'pointer', fontSize: 11, fontWeight: 700,
                 }}>
                   {day}
                 </button>
@@ -736,7 +702,7 @@ function TaskForm({
             <input
               type="number" min={1} max={31}
               value={form.recurrence_day_of_month ?? ''}
-              onChange={e => f('recurrence_day_of_month', parseInt(e.target.value))}
+              onChange={e => f('recurrence_day_of_month', parseInt(e.target.value) || undefined)}
               placeholder="e.g. 15"
               style={styles.input}
             />
@@ -755,22 +721,15 @@ function TaskForm({
           </>
         )}
 
-        {/* Optional time */}
         <label style={styles.label}>Time (optional)</label>
         <input type="time" value={form.due_time ?? ''} onChange={e => f('due_time', e.target.value)} style={styles.input} />
 
-        {/* Actions */}
         <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
           <button onClick={onClose} style={{ flex: 1, ...styles.secondaryBtn }}>Cancel</button>
           <button onClick={onSave} disabled={saving || !form.title?.trim()} style={{
-            flex: 2,
-            padding: '14px',
-            borderRadius: 12,
-            border: 'none',
+            flex: 2, padding: '14px', borderRadius: 12, border: 'none',
             background: saving || !form.title?.trim() ? 'rgba(108,142,255,0.3)' : 'linear-gradient(135deg, #6C8EFF, #818CF8)',
-            color: '#fff',
-            fontWeight: 800,
-            fontSize: 15,
+            color: '#fff', fontWeight: 800, fontSize: 15,
             cursor: saving || !form.title?.trim() ? 'not-allowed' : 'pointer',
           }}>
             {saving ? 'Saving…' : editing ? 'Save Changes' : 'Add Task'}
@@ -784,25 +743,16 @@ function TaskForm({
 // ─── Shared styles ────────────────────────────────────────────────────────────
 const styles = {
   addBtn: {
-    padding: '10px 18px',
-    borderRadius: 12,
-    border: 'none',
+    padding: '10px 18px', borderRadius: 12, border: 'none',
     background: 'linear-gradient(135deg, #6C8EFF, #818CF8)',
-    color: '#fff',
-    fontWeight: 700,
-    fontSize: 14,
-    cursor: 'pointer',
+    color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer',
     whiteSpace: 'nowrap' as const,
   },
   tab: {
-    padding: '8px 16px',
-    borderRadius: 99,
+    padding: '8px 16px', borderRadius: 99,
     border: '1.5px solid rgba(255,255,255,0.1)',
-    background: 'transparent',
-    color: '#64748B',
-    cursor: 'pointer',
-    fontSize: 13,
-    fontWeight: 600,
+    background: 'transparent', color: '#64748B',
+    cursor: 'pointer', fontSize: 13, fontWeight: 600,
   },
   tabActive: {
     border: '1.5px solid #6C8EFF',
@@ -810,14 +760,10 @@ const styles = {
     color: '#6C8EFF',
   },
   chip: {
-    padding: '6px 12px',
-    borderRadius: 99,
+    padding: '6px 12px', borderRadius: 99,
     border: '1.5px solid rgba(255,255,255,0.1)',
-    background: 'transparent',
-    color: '#64748B',
-    cursor: 'pointer',
-    fontSize: 12,
-    fontWeight: 600,
+    background: 'transparent', color: '#64748B',
+    cursor: 'pointer', fontSize: 12, fontWeight: 600,
     whiteSpace: 'nowrap' as const,
   },
   chipActive: {
@@ -826,45 +772,27 @@ const styles = {
     color: '#6C8EFF',
   },
   actionBtn: {
-    padding: '6px 12px',
-    borderRadius: 8,
+    padding: '6px 12px', borderRadius: 8,
     border: '1px solid rgba(255,255,255,0.1)',
     background: 'rgba(255,255,255,0.05)',
-    color: '#94A3B8',
-    cursor: 'pointer',
-    fontSize: 12,
-    fontWeight: 600,
+    color: '#94A3B8', cursor: 'pointer', fontSize: 12, fontWeight: 600,
   },
   label: {
     display: 'block' as const,
-    fontSize: 12,
-    fontWeight: 700,
-    color: '#64748B',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.05em',
-    marginBottom: 8,
+    fontSize: 12, fontWeight: 700, color: '#64748B',
+    textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: 8,
   },
   input: {
-    width: '100%',
-    padding: '12px 14px',
-    borderRadius: 10,
+    width: '100%', padding: '12px 14px', borderRadius: 10,
     border: '1.5px solid rgba(255,255,255,0.1)',
     background: 'rgba(255,255,255,0.05)',
-    color: '#F1F5F9',
-    fontSize: 14,
-    marginBottom: 16,
-    boxSizing: 'border-box' as const,
-    outline: 'none',
-    fontFamily: 'inherit',
+    color: '#F1F5F9', fontSize: 14, marginBottom: 16,
+    boxSizing: 'border-box' as const, outline: 'none', fontFamily: 'inherit',
   },
   secondaryBtn: {
-    padding: '14px',
-    borderRadius: 12,
+    padding: '14px', borderRadius: 12,
     border: '1.5px solid rgba(255,255,255,0.1)',
-    background: 'transparent',
-    color: '#94A3B8',
-    fontWeight: 700,
-    fontSize: 15,
-    cursor: 'pointer',
+    background: 'transparent', color: '#94A3B8',
+    fontWeight: 700, fontSize: 15, cursor: 'pointer',
   },
 }
