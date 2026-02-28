@@ -28,7 +28,7 @@ export default function EmojiPicker({ onSelect }: EmojiPickerProps) {
         {EMOJIS.map(emoji => (
           <button
             key={emoji}
-            onMouseDown={e => { e.preventDefault(); onSelect(emoji) }}
+            onClick={() => onSelect(emoji)}
             style={{
               background: 'none',
               border: 'none',

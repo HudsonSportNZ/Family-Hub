@@ -82,6 +82,8 @@ export default function MessageThread({ threadId }: { threadId: string }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const readMarkedRef = useRef<Set<string>>(new Set())
+  // Tracks confirmed IDs so the real-time handler doesn't double-add our own sends
+  const sentIdsRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     try {
@@ -136,7 +138,24 @@ export default function MessageThread({ threadId }: { threadId: string }) {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages', filter: `thread_id=eq.${threadId}` },
         payload => {
-          setMessages(prev => [...prev, payload.new as Message])
+          const newMsg = payload.new as Message
+          // Skip if we already placed this via our own insert → select() path
+          if (sentIdsRef.current.has(newMsg.id)) return
+          setMessages(prev => {
+            // Skip exact duplicate
+            if (prev.some(m => m.id === newMsg.id)) return prev
+            // Replace our optimistic temp message (race: real-time beat the select() response)
+            const tempIdx = prev.findIndex(
+              m => m.id.startsWith('temp-') && m.sender === newMsg.sender
+            )
+            if (tempIdx !== -1) {
+              sentIdsRef.current.add(newMsg.id)
+              const updated = [...prev]
+              updated[tempIdx] = newMsg
+              return updated
+            }
+            return [...prev, newMsg]
+          })
           setTimeout(scrollToBottom, 50)
         }
       )
@@ -180,7 +199,10 @@ export default function MessageThread({ threadId }: { threadId: string }) {
       .single()
 
     if (data) {
-      setMessages(prev => prev.map(m => m.id === optimisticId ? data as Message : m))
+      const realMsg = data as Message
+      // Register the real ID so the real-time handler skips it
+      sentIdsRef.current.add(realMsg.id)
+      setMessages(prev => prev.map(m => m.id === optimisticId ? realMsg : m))
     }
   }
 

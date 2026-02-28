@@ -278,8 +278,8 @@ export default function Dashboard() {
         }
 
         /* ── HEADER ── */
-        .dash-header { padding: 16px 22px 10px; flex-shrink: 0; }
-        @media (min-width: 769px) { .dash-header { padding-top: 24px; } }
+        .dash-header { padding: 16px 22px 10px; padding-top: max(16px, env(safe-area-inset-top)); flex-shrink: 0; }
+        @media (min-width: 769px) { .dash-header { padding-top: max(24px, env(safe-area-inset-top)); } }
 
         .dash-header-top {
           display: flex; justify-content: space-between; align-items: flex-start;

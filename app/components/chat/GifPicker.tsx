@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react'
 
+// Tenor v1 API — reliable, browser-friendly, widely supported
 const TENOR_KEY = 'LIVDSRZULELA'
-const TENOR_BASE = 'https://tenor.googleapis.com/v2'
+const TENOR_BASE = 'https://api.tenor.com/v1'
 
 interface GifResult {
   id: string
@@ -17,29 +18,40 @@ interface GifPickerProps {
   onClose: () => void
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractUrls(r: any): { url: string; preview: string } {
+  const media = r.media?.[0] ?? {}
+  return {
+    url:     media.gif?.url     ?? media.mediumgif?.url ?? media.tinygif?.url ?? '',
+    preview: media.tinygif?.url ?? media.nanogif?.url   ?? media.gif?.url     ?? '',
+  }
+}
+
 export default function GifPicker({ onSelect }: GifPickerProps) {
   const [query, setQuery] = useState('')
   const [gifs, setGifs] = useState<GifResult[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchGifs = async (searchQuery: string) => {
     setLoading(true)
+    setError(false)
     try {
       const endpoint = searchQuery
-        ? `${TENOR_BASE}/search?q=${encodeURIComponent(searchQuery)}&key=${TENOR_KEY}&limit=20&media_filter=gif`
-        : `${TENOR_BASE}/featured?key=${TENOR_KEY}&limit=20&media_filter=gif`
+        ? `${TENOR_BASE}/search?q=${encodeURIComponent(searchQuery)}&key=${TENOR_KEY}&limit=20&contentfilter=medium`
+        : `${TENOR_BASE}/trending?key=${TENOR_KEY}&limit=20&contentfilter=medium`
       const res = await fetch(endpoint)
+      if (!res.ok) throw new Error(`${res.status}`)
       const data = await res.json()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const results: GifResult[] = (data.results ?? []).map((r: any) => ({
-        id: r.id,
-        url: r.media_formats?.gif?.url ?? r.media_formats?.mediumgif?.url ?? '',
-        preview: r.media_formats?.tinygif?.url ?? r.media_formats?.nanogif?.url ?? r.media_formats?.gif?.url ?? '',
-        title: r.title ?? '',
-      }))
+      const results: GifResult[] = (data.results ?? []).map((r: any) => {
+        const { url, preview } = extractUrls(r)
+        return { id: r.id, url, preview, title: r.title ?? '' }
+      }).filter((g: GifResult) => g.url)
       setGifs(results)
     } catch {
+      setError(true)
       setGifs([])
     }
     setLoading(false)
@@ -102,6 +114,13 @@ export default function GifPicker({ onSelect }: GifPickerProps) {
           }}>
             Loading GIFs...
           </div>
+        ) : error ? (
+          <div style={{
+            gridColumn: '1/-1', textAlign: 'center',
+            padding: '24px 0', color: 'rgba(240,242,248,0.4)', fontSize: 13,
+          }}>
+            Couldn&apos;t load GIFs — check your connection
+          </div>
         ) : gifs.length === 0 ? (
           <div style={{
             gridColumn: '1/-1', textAlign: 'center',
@@ -113,7 +132,7 @@ export default function GifPicker({ onSelect }: GifPickerProps) {
           gifs.map(gif => (
             <div
               key={gif.id}
-              onMouseDown={e => { e.preventDefault(); onSelect(gif.url) }}
+              onClick={() => onSelect(gif.url)}
               style={{
                 borderRadius: 10,
                 overflow: 'hidden',

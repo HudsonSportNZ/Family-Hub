@@ -10,6 +10,7 @@ export default function TasksPage() {
         alignItems: 'center',
         gap: 12,
         padding: '16px 20px',
+        paddingTop: 'max(16px, env(safe-area-inset-top))',
         borderBottom: '1px solid rgba(255,255,255,0.06)',
         background: '#13151C',
         position: 'sticky',

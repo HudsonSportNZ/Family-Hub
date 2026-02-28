@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -125,11 +126,11 @@ export default function ThreadList() {
       `}</style>
 
       <div style={{
+        position: 'fixed',
+        inset: 0,
         display: 'flex',
         flexDirection: 'column',
-        height: '100dvh',
         background: '#0D0F14',
-        overflow: 'hidden',
       }}>
 
         {/* ── HEADER ── */}
@@ -142,12 +143,25 @@ export default function ThreadList() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          gap: 12,
         }}>
+          {/* Home button */}
+          <Link href="/" style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 36, height: 36, borderRadius: 10,
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            color: '#F0F2F8', textDecoration: 'none',
+            fontSize: 16, flexShrink: 0,
+          }}>
+            ←
+          </Link>
           <div style={{
             fontFamily: 'Syne, sans-serif',
             fontWeight: 800,
-            fontSize: 26,
+            fontSize: 22,
             color: '#F0F2F8',
+            flex: 1,
           }}>
             Messages
           </div>

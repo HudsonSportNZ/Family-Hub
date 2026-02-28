@@ -88,7 +88,7 @@ export default function MobileNav() {
             z-index: 100;
             align-items: center;
             justify-content: space-around;
-            padding: 0 4px;
+            padding: 0 6px;
             padding-bottom: env(safe-area-inset-bottom);
           }
 
@@ -98,35 +98,38 @@ export default function MobileNav() {
             align-items: center;
             justify-content: center;
             gap: 3px;
-            padding: 6px 8px;
+            padding: 6px 2px;
             border-radius: 12px;
             cursor: pointer;
             transition: all 0.2s;
             flex: 1;
             text-decoration: none;
             position: relative;
+            min-width: 0;
           }
           .mobile-bottom-nav-item.active {
             background: rgba(108,142,255,0.12);
           }
           .mobile-bottom-nav-icon {
-            font-size: 20px;
+            font-size: 19px;
             line-height: 1;
           }
           .mobile-bottom-nav-label {
-            font-size: 9px;
+            font-size: 8.5px;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.3px;
+            letter-spacing: 0.2px;
             color: rgba(240,242,248,0.35);
+            white-space: nowrap;
           }
           .mobile-bottom-nav-item.active .mobile-bottom-nav-label {
             color: #6C8EFF;
           }
           .nav-unread-badge {
             position: absolute;
-            top: 3px;
-            right: calc(50% - 20px);
+            top: 2px;
+            left: 50%;
+            transform: translateX(4px);
             min-width: 17px;
             height: 17px;
             border-radius: 9px;
