@@ -1,7 +1,7 @@
 {
   "name": "Hudson Family",
   "short_name": "HudsonFamily",
-  "description": "Hudson Family Hub — your family dashboard",
+  "description": "Hudson Family — your family dashboard",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

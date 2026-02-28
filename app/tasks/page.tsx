@@ -33,22 +33,7 @@ export default function TasksPage() {
         }}>
           ←
         </Link>
-        <div style={{
-          width: 32,
-          height: 32,
-          background: 'linear-gradient(135deg, #6C8EFF, #A78BFA)',
-          borderRadius: 9,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontWeight: 800,
-          fontSize: 12,
-          color: 'white',
-          fontFamily: "'Syne', sans-serif",
-          flexShrink: 0,
-        }}>
-          FH
-        </div>
+        <img src="/icons/apple-touch-icon.png" alt="" style={{ width: 32, height: 32, borderRadius: 9, display: 'block', flexShrink: 0 }} />
         <span style={{
           fontFamily: "'Syne', sans-serif",
           fontWeight: 700,

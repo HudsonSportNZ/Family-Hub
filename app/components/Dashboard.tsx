@@ -232,13 +232,6 @@ export default function Dashboard() {
           display: flex; flex-direction: column; align-items: center;
           padding: 18px 0; gap: 4px; flex-shrink: 0;
         }
-        .sidebar-logo {
-          width: 38px; height: 38px;
-          background: linear-gradient(135deg, #6C8EFF, #A78BFA);
-          border-radius: 11px; display: flex; align-items: center; justify-content: center;
-          font-family: 'Syne', sans-serif; font-weight: 800; font-size: 14px; color: white;
-          margin-bottom: 18px; flex-shrink: 0;
-        }
         .nav-item {
           width: 46px; height: 46px; border-radius: 13px;
           display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -480,7 +473,7 @@ export default function Dashboard() {
 
         {/* ── DESKTOP SIDEBAR ── */}
         <aside className="sidebar">
-          <div className="sidebar-logo">FH</div>
+          <img src="/icons/apple-touch-icon.png" style={{ width: 38, height: 38, borderRadius: 11, display: 'block', marginBottom: 18, flexShrink: 0 }} alt="" />
           {navItems.map(item => (
             item.href ? (
               <a key={item.id} href={item.href} style={{ textDecoration: 'none' }}>

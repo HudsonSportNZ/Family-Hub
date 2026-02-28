@@ -36,7 +36,7 @@ function getThreadMeta(threadId: string, currentUserName: string) {
   if (threadId === 'family') {
     return {
       name: 'Hudson Family',
-      avatar: { text: 'FH', gradient: 'linear-gradient(135deg, #6C8EFF, #A78BFA)' },
+      avatar: { text: 'FH', gradient: 'linear-gradient(135deg, #6C8EFF, #A78BFA)', image: '/icons/apple-touch-icon.png' },
       isFamily: true,
     }
   }
@@ -283,8 +283,11 @@ export default function MessageThread({ threadId }: { threadId: string }) {
             fontSize: meta.avatar.text.length > 1 ? 12 : 17,
             fontWeight: 800, color: 'white',
             fontFamily: 'Syne, sans-serif', flexShrink: 0,
+            overflow: 'hidden',
           }}>
-            {meta.avatar.text}
+            {meta.avatar.image
+              ? <img src={meta.avatar.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              : meta.avatar.text}
           </div>
 
           <div style={{ flex: 1, minWidth: 0 }}>

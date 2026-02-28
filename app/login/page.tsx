@@ -166,20 +166,6 @@ export default function LoginPage() {
           gap: 12px;
           margin-bottom: 6px;
         }
-        .login-logo-badge {
-          width: 46px;
-          height: 46px;
-          background: linear-gradient(135deg, #6C8EFF, #A78BFA);
-          border-radius: 13px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-family: 'Syne', sans-serif;
-          font-weight: 800;
-          font-size: 16px;
-          color: white;
-          flex-shrink: 0;
-        }
         .login-logo-text {
           font-family: 'Syne', sans-serif;
           font-weight: 800;
@@ -365,8 +351,8 @@ export default function LoginPage() {
       {step === 'select' ? (
         <div className="login-screen">
           <div className="login-logo-row">
-            <div className="login-logo-badge">FH</div>
-            <div className="login-logo-text">Family Hub</div>
+            <img src="/icons/apple-touch-icon.png" style={{ width: 46, height: 46, borderRadius: 13, display: 'block' }} alt="" />
+            <div className="login-logo-text">Hudson Family</div>
           </div>
           <div className="login-subtitle">Who&apos;s watching?</div>
 

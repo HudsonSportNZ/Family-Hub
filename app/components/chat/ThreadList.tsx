@@ -98,6 +98,7 @@ export default function ThreadList() {
       name: 'Hudson Family',
       subtitle: 'Everyone',
       avatarText: 'FH',
+      avatarImage: '/icons/apple-touch-icon.png',
       gradient: 'linear-gradient(135deg, #6C8EFF, #A78BFA)',
     },
     ...others.map(name => ({
@@ -216,8 +217,11 @@ export default function ThreadList() {
                     fontSize: thread.avatarText.length > 1 ? 14 : 21,
                     fontWeight: 800, color: 'white',
                     fontFamily: 'Syne, sans-serif',
+                    overflow: 'hidden',
                   }}>
-                    {thread.avatarText}
+                    {thread.avatarImage
+                      ? <img src={thread.avatarImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      : thread.avatarText}
                   </div>
                   {/* Online dot */}
                   <div style={{
