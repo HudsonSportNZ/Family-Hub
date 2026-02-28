@@ -607,35 +607,28 @@ function TaskForm({ form, setForm, editing, saving, error, onSave, onClose, onTo
   const ICONS = ['✓', '🧹', '🎒', '🛒', '💡', '🍽️', '🐱', '❤️', '📚', '🚗', '💊', '🏃', '🌱', '📞', '🔧']
 
   return (
-    <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 110,
-        background: 'rgba(0,0,0,0.7)',
-        display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
-        backdropFilter: 'blur(4px)',
-        width: '100%',
-        overflow: 'hidden',
-      }}
-      onClick={e => e.target === e.currentTarget && onClose()}
-    >
+    <>
+      {/* Backdrop */}
+      <div
+        style={{ position: 'fixed', inset: 0, zIndex: 110, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+        onClick={onClose}
+      />
+
+      {/* Sheet — position: fixed directly so iOS knows the exact bounds */}
       <div style={{
-        width: '100%',
-        background: '#0F172A', border: '1px solid rgba(255,255,255,0.1)',
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 111,
+        background: '#0F172A',
         borderRadius: '20px 20px 0 0',
         display: 'flex', flexDirection: 'column',
-        maxHeight: '88vh',
-        overflow: 'hidden',
+        height: '88vh',
       }}>
-        {/* Scrollable content area */}
+        {/* Scrollable content — minHeight:0 is the critical iOS Safari scroll fix */}
         <div style={{
-          overflowY: 'auto',
-          overflowX: 'hidden',
+          flex: 1, minHeight: 0,
+          overflowY: 'scroll', overflowX: 'hidden',
           padding: '24px 20px 0',
-          flex: 1,
-          width: '100%',
           boxSizing: 'border-box',
           WebkitOverflowScrolling: 'touch',
-          overscrollBehavior: 'contain',
         } as React.CSSProperties}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>{editing ? 'Edit Task' : 'New Task'}</h2>
@@ -812,7 +805,7 @@ function TaskForm({ form, setForm, editing, saving, error, onSave, onClose, onTo
           </button>
         </div>
       </div>
-    </div>
+    </>
   )
 }
 
