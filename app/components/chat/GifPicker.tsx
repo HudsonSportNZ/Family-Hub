@@ -138,8 +138,7 @@ export default function GifPicker({ onSelect }: GifPickerProps) {
                 overflow: 'hidden',
                 cursor: 'pointer',
                 background: '#13151C',
-                aspectRatio: '4/3',
-                flexShrink: 0,
+                height: 110,
               }}
             >
               <img
