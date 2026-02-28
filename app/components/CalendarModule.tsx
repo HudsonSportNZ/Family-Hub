@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import {
   format, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
@@ -392,54 +392,66 @@ function MonthView({
   onEventClick: (ev: CalendarEvent) => void
   onDayClick: (date: Date) => void
 }) {
-  const [expandedDay, setExpandedDay] = useState<string | null>(null)
   const gridStart = startOfWeek(startOfMonth(month), { weekStartsOn: 1 })
   const gridEnd   = endOfWeek(endOfMonth(month),     { weekStartsOn: 1 })
   const days      = eachDayOfInterval({ start: gridStart, end: gridEnd })
+  const numWeeks  = days.length / 7
 
   return (
-    <div style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 250px)', paddingBottom: 80 }}>
-      {/* Day headers */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', borderBottom: '1px solid rgba(255,255,255,0.08)', position: 'sticky', top: 0, background: '#13151C', zIndex: 5 }}>
+    // Fixed height flex column — no scrolling, cells fill screen evenly
+    <div style={{
+      display: 'flex', flexDirection: 'column',
+      height: 'calc(100vh - 180px)',
+    }}>
+      {/* Day-of-week headers */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(7,1fr)',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
+        background: '#13151C', flexShrink: 0,
+      }}>
         {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
-          <div key={d} style={{ textAlign: 'center', padding: '8px 0', fontSize: 10, color: 'rgba(240,242,248,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          <div key={d} style={{ textAlign: 'center', padding: '7px 0', fontSize: 10, color: 'rgba(240,242,248,0.4)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             {d}
           </div>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)' }}>
+      {/* Grid — equal rows, no overflow */}
+      <div style={{
+        flex: 1, minHeight: 0,
+        display: 'grid',
+        gridTemplateColumns: 'repeat(7,1fr)',
+        gridTemplateRows: `repeat(${numWeeks},1fr)`,
+      }}>
         {days.map(d => {
-          const dayEvts  = eventsForDay(events, d, filters)
-          const inMonth  = isSameMonth(d, month)
-          const today    = isTodayNZ(d)
-          const dStr     = format(d, 'yyyy-MM-dd')
-          const isExp    = expandedDay === dStr
-          const maxShow  = isExp ? dayEvts.length : 3
-          const overflow = dayEvts.length - 3
+          const dayEvts = eventsForDay(events, d, filters)
+          const inMonth = isSameMonth(d, month)
+          const today   = isTodayNZ(d)
+          const dStr    = format(d, 'yyyy-MM-dd')
+          const overflow = dayEvts.length - 2
 
           return (
             <div
               key={dStr}
-              onClick={() => {
-                setExpandedDay(isExp ? null : dStr)
-                onDayClick(d)
-              }}
+              onClick={() => onDayClick(d)}
               style={{
-                minHeight: 72, padding: '5px 3px',
+                padding: '4px 2px',
                 borderBottom: '1px solid rgba(255,255,255,0.05)',
                 borderRight:  '1px solid rgba(255,255,255,0.05)',
                 background: today ? 'rgba(108,142,255,0.06)' : 'transparent',
                 opacity: inMonth ? 1 : 0.3,
                 cursor: 'pointer', transition: 'background 0.15s',
+                overflow: 'hidden',
+                display: 'flex', flexDirection: 'column',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
+              {/* Date number */}
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 2, flexShrink: 0 }}>
                 <div style={{
-                  width: 24, height: 24, borderRadius: '50%',
+                  width: 22, height: 22, borderRadius: '50%',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   background: today ? '#6C8EFF' : 'transparent',
-                  fontSize: 12, fontWeight: today ? 700 : 400,
+                  fontSize: 11, fontWeight: today ? 700 : 400,
                   color: today ? 'white' : inMonth ? 'rgba(240,242,248,0.85)' : 'rgba(240,242,248,0.3)',
                   fontFamily: "'Syne', sans-serif",
                 }}>
@@ -447,18 +459,19 @@ function MonthView({
                 </div>
               </div>
 
-              {dayEvts.slice(0, maxShow).map(ev => (
+              {/* Up to 2 event chips */}
+              {dayEvts.slice(0, 2).map(ev => (
                 <div
                   key={ev.id}
                   onClick={e => { e.stopPropagation(); onEventClick(ev) }}
                   style={{
                     background: eventColor(ev) + '30',
                     borderLeft: `2px solid ${eventColor(ev)}`,
-                    borderRadius: 4, padding: '1px 4px',
-                    fontSize: 10, fontWeight: 600, color: '#F0F2F8',
-                    marginBottom: 2, overflow: 'hidden',
+                    borderRadius: 3, padding: '1px 3px',
+                    fontSize: 9, fontWeight: 600, color: '#F0F2F8',
+                    marginBottom: 1, overflow: 'hidden',
                     textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    cursor: 'pointer',
+                    cursor: 'pointer', flexShrink: 0,
                   }}
                 >
                   {ev.all_day
@@ -467,9 +480,9 @@ function MonthView({
                 </div>
               ))}
 
-              {!isExp && overflow > 0 && (
-                <div style={{ fontSize: 10, color: 'rgba(240,242,248,0.4)', paddingLeft: 4 }}>
-                  +{overflow} more
+              {overflow > 0 && (
+                <div style={{ fontSize: 9, color: 'rgba(240,242,248,0.4)', paddingLeft: 2, flexShrink: 0 }}>
+                  +{overflow}
                 </div>
               )}
             </div>
@@ -494,16 +507,23 @@ export default function CalendarModule() {
   const [, setTick] = useState(0) // force re-render every minute for time indicator
 
   // ── Fetch events
-  useEffect(() => {
-    supabase
+  const fetchEvents = useCallback(async () => {
+    const { data, error } = await supabase
       .from('events')
       .select('*')
       .order('start_time')
-      .then(({ data }) => {
-        setEvents((data as CalendarEvent[]) ?? [])
-        setLoading(false)
-      })
+    if (!error && data) setEvents(data as CalendarEvent[])
+    setLoading(false)
   }, [])
+
+  useEffect(() => { fetchEvents() }, [fetchEvents])
+
+  // Refetch whenever the tab becomes visible again (handles Supabase cold-start)
+  useEffect(() => {
+    const handler = () => { if (document.visibilityState === 'visible') fetchEvents() }
+    document.addEventListener('visibilitychange', handler)
+    return () => document.removeEventListener('visibilitychange', handler)
+  }, [fetchEvents])
 
   // ── Real-time subscription
   useEffect(() => {
