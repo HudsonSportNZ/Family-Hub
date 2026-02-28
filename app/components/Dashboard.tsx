@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
+import EventModal from './EventModal'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,9 +12,9 @@ const supabase = createClient(
 )
 
 const TODAY = new Date().toISOString().split('T')[0]
+const NZ_TZ = 'Pacific/Auckland'
 
 type Member = 'M' | 'D' | 'I' | 'J'
-
 
 interface Task {
   id: string
@@ -32,6 +34,57 @@ interface Completion {
   task_id: string
   completed_by: Member
   completed_for_date: string
+}
+
+interface CalendarEvent {
+  id: string
+  title: string
+  start_time: string
+  end_time: string
+  all_day: boolean
+  location?: string
+  members: string[]
+  colour?: string
+}
+
+const EVENT_MEMBERS = [
+  { id: 'mum',    label: 'Mum',    initial: 'M', color: '#6C8EFF' },
+  { id: 'dad',    label: 'Dad',    initial: 'D', color: '#34D399' },
+  { id: 'isabel', label: 'Isabel', initial: 'I', color: '#F472B6' },
+  { id: 'james',  label: 'James',  initial: 'J', color: '#FBBF24' },
+]
+
+function eventColor(ev: CalendarEvent): string {
+  if (ev.colour) return ev.colour
+  const first = EVENT_MEMBERS.find(m => ev.members.includes(m.id))
+  return first?.color ?? '#6C8EFF'
+}
+
+function fmtEventTime(ts: string): { time: string; ampm: string } {
+  const str = new Date(ts).toLocaleTimeString('en-NZ', {
+    timeZone: NZ_TZ, hour: 'numeric', minute: '2-digit', hour12: true,
+  })
+  const parts = str.split(' ')
+  return { time: parts[0], ampm: parts[1] ?? '' }
+}
+
+function getTodayNZRange(): { start: string; end: string } {
+  const d = new Date()
+  const dateStr = d.toLocaleDateString('en-CA', { timeZone: NZ_TZ }) // YYYY-MM-DD
+  // Get the NZ offset for today
+  const nzStr = d.toLocaleString('en-NZ', { timeZone: NZ_TZ, timeZoneName: 'shortOffset' })
+  const match = nzStr.match(/GMT([+-]\d+)/)
+  const off = match ? (parseInt(match[1]) >= 0 ? `+${String(parseInt(match[1])).padStart(2,'0')}:00` : `-${String(Math.abs(parseInt(match[1]))).padStart(2,'0')}:00`) : '+13:00'
+  return {
+    start: `${dateStr}T00:00:00${off}`,
+    end:   `${dateStr}T23:59:59${off}`,
+  }
+}
+
+function getMemberLabel(members: string[]): string {
+  if (members.length === 0) return ''
+  if (members.length === 4) return 'All'
+  return members.map(m => EVENT_MEMBERS.find(x => x.id === m)?.label ?? m).join(', ')
 }
 
 function isTaskDueToday(task: Task): boolean {
@@ -58,7 +111,7 @@ function getGreeting() {
 
 const navItems = [
   { id: 'tasks',    icon: '✅', label: 'Tasks',    href: '/tasks'  },
-  { id: 'schedule', icon: '📅', label: 'Calendar', href: null      },
+  { id: 'schedule', icon: '📅', label: 'Calendar', href: '/calendar' },
   { id: 'meals',    icon: '🍴', label: 'Food',     href: null      },
   { id: 'money',    icon: '💰', label: 'Money',    href: null      },
 ]
@@ -77,6 +130,8 @@ export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [completions, setCompletions] = useState<Completion[]>([])
   const [activeMember, setActiveMember] = useState('M')
+  const [todayEvents, setTodayEvents] = useState<CalendarEvent[]>([])
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -88,6 +143,37 @@ export default function Dashboard() {
       setCompletions((completionData as Completion[]) ?? [])
     }
     fetchTasks()
+  }, [])
+
+  // Fetch today's events (wide UTC window, filter by NZ date in JS)
+  useEffect(() => {
+    const { start, end } = getTodayNZRange()
+    supabase
+      .from('events')
+      .select('*')
+      .gte('start_time', start)
+      .lte('start_time', end)
+      .order('start_time')
+      .then(({ data }) => setTodayEvents((data as CalendarEvent[]) ?? []))
+  }, [])
+
+  // Real-time subscription for today's events
+  useEffect(() => {
+    const ch = supabase
+      .channel('dashboard-events')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, () => {
+        // Re-fetch on any change
+        const { start, end } = getTodayNZRange()
+        supabase
+          .from('events')
+          .select('*')
+          .gte('start_time', start)
+          .lte('start_time', end)
+          .order('start_time')
+          .then(({ data }) => setTodayEvents((data as CalendarEvent[]) ?? []))
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
   }, [])
 
   const todayTasks = tasks.filter(isTaskDueToday)
@@ -531,87 +617,67 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* TODAY'S EVENTS */}
+              {/* TODAY'S EVENTS — live from Supabase */}
               <div className="section-card">
-                <div className="section-label">📅 Today&apos;s events</div>
-
-                <div className="event-item" style={{opacity:0.45}}>
-                  <div className="event-time-col">
-                    <div className="event-time" style={{color:'var(--muted)'}}>7:30</div>
-                    <div className="event-ampm">am</div>
-                  </div>
-                  <div className="event-dot" style={{background:'#444'}} />
-                  <div className="event-info">
-                    <div className="event-name done">School drop-off</div>
-                    <div className="event-detail">Done ✓</div>
-                  </div>
-                  <div className="event-who" style={{background:'rgba(255,255,255,0.05)',color:'rgba(240,242,248,0.3)'}}>Dad</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <div className="section-label" style={{ marginBottom: 0 }}>📅 Today&apos;s events</div>
+                  <Link href="/calendar" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, opacity: 0.8 }}>
+                    View Calendar →
+                  </Link>
                 </div>
 
-                <div className="event-item current">
-                  <div className="event-time-col">
-                    <div className="event-time" style={{color:'#6C8EFF'}}>9:00</div>
-                    <div className="event-ampm">am</div>
+                {todayEvents.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '16px 0', color: 'var(--muted)', fontSize: 14 }}>
+                    Nothing on today 🎉
                   </div>
-                  <div className="event-dot glow" style={{background:'#6C8EFF'}} />
-                  <div className="event-info">
-                    <div className="event-name">Grocery run 🛒</div>
-                    <div className="event-detail">Countdown Khandallah · Now</div>
-                  </div>
-                  <div className="event-who" style={{background:'rgba(108,142,255,0.15)',color:'#6C8EFF'}}>Mum</div>
-                </div>
-
-                <div className="event-item">
-                  <div className="event-time-col">
-                    <div className="event-time">10:30</div>
-                    <div className="event-ampm">am</div>
-                  </div>
-                  <div className="event-dot" style={{background:'#6C8EFF'}} />
-                  <div className="event-info">
-                    <div className="event-name">Vet appointment 🐶</div>
-                    <div className="event-detail">Buddy · Newlands Vet · 45 mins</div>
-                  </div>
-                  <div className="event-who" style={{background:'rgba(108,142,255,0.15)',color:'#6C8EFF'}}>Mum</div>
-                </div>
-
-                <div className="event-item">
-                  <div className="event-time-col">
-                    <div className="event-time">3:10</div>
-                    <div className="event-ampm">pm</div>
-                  </div>
-                  <div className="event-dot" style={{background:'#FBBF24'}} />
-                  <div className="event-info">
-                    <div className="event-name">School pick-up 🚗</div>
-                    <div className="event-detail">Oak Street · Both kids</div>
-                  </div>
-                  <div className="event-who" style={{background:'rgba(251,191,36,0.12)',color:'#FBBF24'}}>Dad</div>
-                </div>
-
-                <div className="event-item">
-                  <div className="event-time-col">
-                    <div className="event-time">4:30</div>
-                    <div className="event-ampm">pm</div>
-                  </div>
-                  <div className="event-dot" style={{background:'#34D399'}} />
-                  <div className="event-info">
-                    <div className="event-name">Football training ⚽</div>
-                    <div className="event-detail">Newlands Park · James</div>
-                  </div>
-                  <div className="event-who" style={{background:'rgba(52,211,153,0.12)',color:'#34D399'}}>Dad</div>
-                </div>
-
-                <div className="event-item">
-                  <div className="event-time-col">
-                    <div className="event-time">6:30</div>
-                    <div className="event-ampm">pm</div>
-                  </div>
-                  <div className="event-dot" style={{background:'#F472B6'}} />
-                  <div className="event-info">
-                    <div className="event-name">Dinner together 🌮</div>
-                    <div className="event-detail">Taco Tuesday · Everyone</div>
-                  </div>
-                  <div className="event-who" style={{background:'rgba(244,114,182,0.12)',color:'#F472B6'}}>All</div>
-                </div>
+                ) : (
+                  todayEvents.map(ev => {
+                    const color = eventColor(ev)
+                    const now = new Date()
+                    const evStart = new Date(ev.start_time)
+                    const evEnd   = new Date(ev.end_time)
+                    const isCurrent = evStart <= now && evEnd >= now
+                    const isPast    = evEnd < now
+                    const { time, ampm } = fmtEventTime(ev.start_time)
+                    const who = getMemberLabel(ev.members)
+                    return (
+                      <div
+                        key={ev.id}
+                        className={`event-item${isCurrent ? ' current' : ''}`}
+                        style={{ opacity: isPast ? 0.45 : 1, cursor: 'pointer' }}
+                        onClick={() => setSelectedEvent(ev)}
+                      >
+                        <div className="event-time-col">
+                          <div className="event-time" style={{ color: isCurrent ? color : isPast ? 'var(--muted)' : 'var(--accent)' }}>
+                            {time}
+                          </div>
+                          <div className="event-ampm">{ampm}</div>
+                        </div>
+                        <div
+                          className={`event-dot${isCurrent ? ' glow' : ''}`}
+                          style={{ background: isPast ? '#444' : color }}
+                        />
+                        <div className="event-info">
+                          <div className={`event-name${isPast ? ' done' : ''}`}>{ev.title}</div>
+                          {ev.location && (
+                            <div className="event-detail">{ev.location}</div>
+                          )}
+                        </div>
+                        {who && (
+                          <div
+                            className="event-who"
+                            style={{
+                              background: isPast ? 'rgba(255,255,255,0.05)' : color + '20',
+                              color: isPast ? 'rgba(240,242,248,0.3)' : color,
+                            }}
+                          >
+                            {who}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })
+                )}
               </div>
 
               {/* DAILY QUOTE */}
@@ -628,6 +694,21 @@ export default function Dashboard() {
         </div>
 
       </div>
+
+      {selectedEvent && (
+        <EventModal
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+          onSave={saved => {
+            setTodayEvents(prev => prev.map(e => e.id === saved.id ? saved : e))
+            setSelectedEvent(null)
+          }}
+          onDelete={id => {
+            setTodayEvents(prev => prev.filter(e => e.id !== id))
+            setSelectedEvent(null)
+          }}
+        />
+      )}
     </>
   )
 }
