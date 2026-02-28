@@ -311,15 +311,29 @@ function WeekView({
 }) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [containerWidth, setContainerWidth] = useState(0)
+  const [weekHeight, setWeekHeight] = useState(0)
 
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
-    const update = () => setContainerWidth(el.offsetWidth)
+    const update = () => {
+      setContainerWidth(el.offsetWidth)
+      const top = el.getBoundingClientRect().top
+      const vh  = window.visualViewport?.height ?? window.innerHeight
+      // 88px ≈ mobile nav (49px) + iOS safe-area-bottom (~34px) + buffer (5px)
+      setWeekHeight(Math.max(vh - top - 88, 300))
+    }
     update()
+    // Re-measure after toolbar may have reflowed (flexWrap on narrow screens)
+    const t = setTimeout(update, 80)
     const obs = new ResizeObserver(update)
     obs.observe(el)
-    return () => obs.disconnect()
+    window.addEventListener('resize', update)
+    return () => {
+      clearTimeout(t)
+      obs.disconnect()
+      window.removeEventListener('resize', update)
+    }
   }, [])
 
   const days       = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
@@ -334,7 +348,7 @@ function WeekView({
   return (
     <div
       ref={containerRef}
-      style={{ display: 'flex', height: 'calc(100dvh - 240px)', minHeight: 300, overflow: 'hidden' }}
+      style={{ display: 'flex', height: weekHeight || 500, minHeight: 300, overflow: 'hidden' }}
     >
       {/* ── Pinned time column ─────────────────────────────────────────── */}
       <div style={{
