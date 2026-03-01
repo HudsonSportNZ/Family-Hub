@@ -18,11 +18,7 @@ let _cacheTs = 0
 const CACHE_TTL = 15 * 60 * 1000 // 15 minutes
 const REFRESH_INTERVAL = 15 * 60 * 1000
 
-const API_BASE =
-  'https://api.openweathermap.org/data/3.0/onecall' +
-  '?lat=-41.2274&lon=174.8850' +
-  '&exclude=minutely,alerts' +
-  '&units=metric&appid='
+const API_URL = '/api/weather'
 
 function getWeatherInfo(id: number): { label: string; emoji: string } {
   if (id === 800)              return { label: 'Clear Sky',     emoji: '☀️' }
@@ -73,7 +69,7 @@ export default function WeatherWidget() {
       return { abort: () => {} }
     }
 
-    const url = API_BASE + process.env.NEXT_PUBLIC_WEATHER_API_KEY
+    const url = API_URL
     if (showSpinner) setSpinning(true)
     const controller = new AbortController()
     fetch(url, { signal: controller.signal })
