@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 import EventModal from './EventModal'
+import TodayAtSchool from './school/TodayAtSchool'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -617,30 +618,8 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* WHAT TO WEAR */}
-              <div className="section-card">
-                <div className="section-label">👕 What to wear today</div>
-                <div className="uniform-grid">
-                  <div className="uniform-item highlight">
-                    <div className="uniform-child">
-                      <div className="uniform-avatar" style={{background:'linear-gradient(135deg,#FBBF24,#F97316)'}}>I</div>
-                      <div className="uniform-name">Isabel</div>
-                    </div>
-                    <div className="uniform-type">👟</div>
-                    <div className="uniform-detail">PE gear + sports shoes. Water bottle!</div>
-                    <div className="uniform-badge" style={{background:'rgba(251,191,36,0.15)',color:'#FBBF24'}}>PE Day</div>
-                  </div>
-                  <div className="uniform-item">
-                    <div className="uniform-child">
-                      <div className="uniform-avatar" style={{background:'linear-gradient(135deg,#F472B6,#A78BFA)'}}>J</div>
-                      <div className="uniform-name">James</div>
-                    </div>
-                    <div className="uniform-type">👕</div>
-                    <div className="uniform-detail">Regular uniform. Reading folder in bag.</div>
-                    <div className="uniform-badge" style={{background:'rgba(255,255,255,0.06)',color:'rgba(240,242,248,0.5)'}}>Normal</div>
-                  </div>
-                </div>
-              </div>
+              {/* TODAY AT SCHOOL */}
+              <TodayAtSchool />
 
               {/* TODAY'S EVENTS — live from Supabase */}
               <div className="section-card">
