@@ -8,8 +8,8 @@ interface OWMResponse {
     weather: { id: number; description: string }[]
     wind_speed: number // m/s
   }
-  hourly: { dt: number; temp: number }[]
-  daily: { temp: { min: number; max: number } }[]
+  hourly: { dt: number; weather: { id: number }[] }[]
+  daily: { temp: { min: number; max: number; morn: number; day: number; eve: number } }[]
 }
 
 // Module-level cache — survives component remounts within the same session
@@ -18,12 +18,11 @@ let _cacheTs = 0
 const CACHE_TTL = 15 * 60 * 1000 // 15 minutes
 const REFRESH_INTERVAL = 15 * 60 * 1000
 
-const API_URL =
+const API_BASE =
   'https://api.openweathermap.org/data/3.0/onecall' +
   '?lat=-41.2274&lon=174.8850' +
   '&exclude=minutely,alerts' +
-  '&units=metric' +
-  `&appid=${process.env.NEXT_PUBLIC_WEATHER_API_KEY}`
+  '&units=metric&appid='
 
 function getWeatherInfo(id: number): { label: string; emoji: string } {
   if (id === 800)              return { label: 'Clear Sky',     emoji: '☀️' }
@@ -38,21 +37,16 @@ function getWeatherInfo(id: number): { label: string; emoji: string } {
   return { label: 'Unknown', emoji: '🌡️' }
 }
 
-// Return the hour (0–23) for a Unix timestamp in NZ local time
-function nzHour(dt: number): number {
-  return parseInt(
-    new Date(dt * 1000).toLocaleString('en-NZ', {
-      timeZone: 'Pacific/Auckland',
-      hour: 'numeric',
-      hour12: false,
-    }),
-    10
-  )
-}
-
-function findHourTemp(hourly: OWMResponse['hourly'], targetHour: number): number {
-  const match = hourly.find(h => nzHour(h.dt) === targetHour)
-  return Math.round((match ?? hourly[0]).temp)
+// Find the emoji for a time slot: match today's NZ date + target hour in hourly data.
+// Falls back to current conditions (hourly[0]) if that hour has already passed.
+function findSlotIcon(hourly: OWMResponse['hourly'], targetHour: number): string {
+  const todayNZ = new Date().toLocaleDateString('en-NZ', { timeZone: 'Pacific/Auckland' })
+  const match = hourly.find(h => {
+    const dateNZ = new Date(h.dt * 1000).toLocaleDateString('en-NZ', { timeZone: 'Pacific/Auckland' })
+    const hour   = parseInt(new Date(h.dt * 1000).toLocaleString('en-NZ', { timeZone: 'Pacific/Auckland', hour: 'numeric', hour12: false }), 10)
+    return dateNZ === todayNZ && hour === targetHour
+  })
+  return getWeatherInfo((match ?? hourly[0]).weather[0].id).emoji
 }
 
 function fmtAge(fetchedAt: Date): string {
@@ -79,11 +73,12 @@ export default function WeatherWidget() {
       return { abort: () => {} }
     }
 
+    const url = API_BASE + process.env.NEXT_PUBLIC_WEATHER_API_KEY
     if (showSpinner) setSpinning(true)
     const controller = new AbortController()
-    fetch(API_URL, { signal: controller.signal })
+    fetch(url, { signal: controller.signal })
       .then(r => {
-        if (!r.ok) throw new Error('fetch failed')
+        if (!r.ok) throw new Error(`fetch failed: ${r.status}`)
         return r.json() as Promise<OWMResponse>
       })
       .then(data => {
@@ -185,9 +180,9 @@ export default function WeatherWidget() {
   const wind = Math.round(current.wind_speed * 3.6) // m/s → km/h
 
   const timeSlots = [
-    { label: 'Morning',   temp: findHourTemp(hourly, 8),  icon: '🌅' },
-    { label: 'Afternoon', temp: findHourTemp(hourly, 13), icon: '☀️' },
-    { label: 'Evening',   temp: findHourTemp(hourly, 19), icon: '🌆' },
+    { label: 'Morning',   temp: Math.round(daily[0].temp.morn), icon: findSlotIcon(hourly, 8)  },
+    { label: 'Afternoon', temp: Math.round(daily[0].temp.day),  icon: findSlotIcon(hourly, 13) },
+    { label: 'Evening',   temp: Math.round(daily[0].temp.eve),  icon: findSlotIcon(hourly, 19) },
   ]
 
   return (
