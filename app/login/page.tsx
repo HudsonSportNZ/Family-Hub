@@ -354,7 +354,7 @@ export default function LoginPage() {
             <img src="/icons/apple-touch-icon.png" style={{ width: 46, height: 46, borderRadius: 13, display: 'block' }} alt="" />
             <div className="login-logo-text">Hudson Family</div>
           </div>
-          <div className="login-subtitle">Who&apos;s watching?</div>
+          <div className="login-subtitle">Who the heck are you?</div>
 
           <div className="avatar-grid">
             {MEMBERS.map(m => (
