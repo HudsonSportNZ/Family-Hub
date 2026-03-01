@@ -68,9 +68,11 @@ const DAY_CONFIG: { key: DayKey; label: string; offset: number }[] = [
 ]
 
 function makeEmptyWeek(): Record<DayKey, DayPlan> {
-  return Object.fromEntries(
-    DAY_CONFIG.map(d => [d.key, { ...EMPTY_DAY, isabel_activities: [], james_activities: [] }])
-  ) as Record<DayKey, DayPlan>
+  const result = {} as Record<DayKey, DayPlan>
+  for (const d of DAY_CONFIG) {
+    result[d.key] = { ...EMPTY_DAY, isabel_activities: [], james_activities: [] }
+  }
+  return result
 }
 
 function rowToPlan(row: Record<string, unknown>): DayPlan {
