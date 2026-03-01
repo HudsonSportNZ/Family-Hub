@@ -7,7 +7,7 @@ const OWM_URL =
   '&units=metric'
 
 export async function GET() {
-  const key = process.env.NEXT_PUBLIC_WEATHER_API_KEY
+  const key = process.env.WEATHER_API_KEY
   if (!key) {
     return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
   }
