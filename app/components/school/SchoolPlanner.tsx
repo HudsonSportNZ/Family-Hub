@@ -298,7 +298,7 @@ export default function SchoolPlanner() {
         {/* ── DAY ROWS ── */}
         <div style={{
           flex: 1, overflowY: 'auto', padding: '14px 20px',
-          paddingBottom: 'calc(24px + env(safe-area-inset-bottom))',
+          paddingBottom: 'calc(80px + env(safe-area-inset-bottom))',
           display: 'flex', flexDirection: 'column', gap: 10,
           scrollbarWidth: 'none',
         }}>

@@ -68,37 +68,46 @@ const WEEKEND_MESSAGES = [
   { emoji: '🎉', text: 'NO SCHOOL TODAY BABY!' },
   { emoji: '☀️', text: 'Weekend vibes only!' },
   { emoji: '🛌', text: 'Sleep in, no rush!' },
-  { emoji: '🎮', text: 'Free time, let\'s go!' },
+  { emoji: '🎮', text: "Free time, let's go!" },
 ]
 
 export default function TodayAtSchool() {
   const [today] = useState<Date>(getNZToday)
   const [weekMonday] = useState<Date>(() => getWeekMonday(getNZToday()))
+  const [nextWeekMonday] = useState<Date>(() => {
+    const d = getWeekMonday(getNZToday())
+    d.setDate(d.getDate() + 7)
+    return d
+  })
   const [weekNum] = useState<number>(() => getISOWeek(getNZToday()))
 
-  const todayDow = today.getDay() // 0=Sun, 6=Sat
+  const todayDow = today.getDay()
   const isWeekend = todayDow === 0 || todayDow === 6
   const defaultIdx = todayDow >= 1 && todayDow <= 5 ? todayDow - 1 : 0
 
   const [selectedIdx, setSelectedIdx] = useState(defaultIdx)
-  const [weekData, setWeekData] = useState<Record<string, SchoolRow>>({})
+  const [viewingNextWeek, setViewingNextWeek] = useState(false)
+  const [thisWeekData, setThisWeekData] = useState<Record<string, SchoolRow>>({})
+  const [nextWeekData, setNextWeekData] = useState<Record<string, SchoolRow>>({})
   const [loading, setLoading] = useState(true)
   const [isParent, setIsParent] = useState(false)
-
-  // Stable weekend message (same one per session)
   const [weekendMsg] = useState(() => WEEKEND_MESSAGES[Math.floor(Math.random() * WEEKEND_MESSAGES.length)])
 
-  function fetchWeekData() {
-    supabase
-      .from('school_plan')
-      .select('*')
-      .eq('week_start', toYMD(weekMonday))
-      .then(({ data }) => {
-        const map: Record<string, SchoolRow> = {}
-        ;(data as SchoolRow[] ?? []).forEach(r => { map[r.day_of_week] = r })
-        setWeekData(map)
-        setLoading(false)
-      })
+  function parseRows(rows: SchoolRow[]): Record<string, SchoolRow> {
+    const map: Record<string, SchoolRow> = {}
+    rows.forEach(r => { map[r.day_of_week] = r })
+    return map
+  }
+
+  function fetchAllData() {
+    Promise.all([
+      supabase.from('school_plan').select('*').eq('week_start', toYMD(weekMonday)),
+      supabase.from('school_plan').select('*').eq('week_start', toYMD(nextWeekMonday)),
+    ]).then(([r0, r1]) => {
+      setThisWeekData(parseRows((r0.data as SchoolRow[]) ?? []))
+      setNextWeekData(parseRows((r1.data as SchoolRow[]) ?? []))
+      setLoading(false)
+    })
   }
 
   useEffect(() => {
@@ -107,21 +116,22 @@ export default function TodayAtSchool() {
       setIsParent(u.role === 'parent')
     } catch { /* ignore */ }
 
-    fetchWeekData()
+    fetchAllData()
 
-    // Real-time: re-fetch when school_plan changes
     const ch = supabase
       .channel('today-at-school')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'school_plan' }, fetchWeekData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'school_plan' }, fetchAllData)
       .subscribe()
 
     return () => { supabase.removeChannel(ch) }
   }, [])
 
+  // Active context — this week or next week preview
+  const activeMonday = viewingNextWeek ? nextWeekMonday : weekMonday
+  const activeData   = viewingNextWeek ? nextWeekData   : thisWeekData
+
   const selDay = DAYS[selectedIdx]
-  const selDate = new Date(weekMonday)
-  selDate.setDate(selDate.getDate() + selDay.offset)
-  const data = weekData[selDay.key] ?? null
+  const data   = activeData[selDay.key] ?? null
   const todayDayName = today.toLocaleDateString('en-NZ', { weekday: 'long' })
 
   return (
@@ -153,27 +163,66 @@ export default function TodayAtSchool() {
         )}
       </div>
 
-      {/* Weekend state */}
-      {isWeekend ? (
-        <div style={{
-          textAlign: 'center', padding: '28px 12px',
-          background: 'var(--card2)', borderRadius: 16,
-          border: '1px solid var(--border)',
-        }}>
-          <div style={{ fontSize: 40, marginBottom: 8 }}>{weekendMsg.emoji}</div>
-          <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 15, fontWeight: 800, color: 'var(--accent)' }}>
-            {weekendMsg.text}
+      {/* Weekend */}
+      {isWeekend && !viewingNextWeek ? (
+        <>
+          <div style={{
+            textAlign: 'center', padding: '24px 12px 20px',
+            background: 'var(--card2)', borderRadius: 16,
+            border: '1px solid var(--border)',
+            marginBottom: 10,
+          }}>
+            <div style={{ fontSize: 38, marginBottom: 8 }}>{weekendMsg.emoji}</div>
+            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 15, fontWeight: 800, color: 'var(--accent)' }}>
+              {weekendMsg.text}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
+              School&apos;s back {todayDow === 6 ? 'Monday' : 'tomorrow'} — enjoy today!
+            </div>
           </div>
-          <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
-            School's back {todayDow === 6 ? 'Monday' : 'tomorrow'} — enjoy today!
+
+          {/* Next week preview button */}
+          <div
+            onClick={() => { setSelectedIdx(0); setViewingNextWeek(true) }}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+              padding: '10px 14px', borderRadius: 12, cursor: 'pointer',
+              background: 'rgba(108,142,255,0.08)',
+              border: '1px solid rgba(108,142,255,0.2)',
+              transition: 'all 0.2s',
+            }}
+          >
+            <span style={{ fontSize: 13 }}>📅</span>
+            <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 12, fontWeight: 700, color: 'var(--accent)' }}>
+              Peek at next week
+            </span>
+            <span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 'auto' }} suppressHydrationWarning>
+              {nextWeekMonday.toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })} →
+            </span>
           </div>
-        </div>
+        </>
       ) : (
         <>
+          {/* Back to weekend pill — only shown when previewing next week on a weekend */}
+          {isWeekend && viewingNextWeek && (
+            <div
+              onClick={() => setViewingNextWeek(false)}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+                fontSize: 10, fontWeight: 600, color: 'var(--muted)',
+                padding: '3px 10px', borderRadius: 20,
+                background: 'var(--card2)', border: '1px solid var(--border)',
+                cursor: 'pointer', marginBottom: 10,
+              }}
+            >
+              ← {weekendMsg.emoji} Back to weekend
+            </div>
+          )}
+
           {/* Day strip */}
           <div style={{ display: 'flex', gap: 6, marginBottom: 12, overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: 2 }}>
             {DAYS.map((d, i) => {
-              const chipDate = new Date(weekMonday)
+              const chipDate = new Date(activeMonday)
               chipDate.setDate(chipDate.getDate() + d.offset)
               const active = i === selectedIdx
               return (
