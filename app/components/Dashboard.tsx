@@ -856,25 +856,6 @@ export default function Dashboard() {
         .event-detail { font-size: 11px; color: var(--muted); margin-top: 2px; }
         .event-who { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 20px; flex-shrink: 0; }
 
-        /* ── QUOTE ── */
-        .quote-card {
-          background: linear-gradient(135deg, rgba(108,142,255,0.08), rgba(167,139,250,0.08));
-          border: 1px solid rgba(108,142,255,0.15);
-          border-radius: 20px; padding: 18px; text-align: center;
-          position: relative; overflow: hidden; flex-shrink: 0;
-        }
-        .quote-card::before {
-          content: '"'; position: absolute; top: -10px; left: 10px;
-          font-family: 'Syne', sans-serif; font-size: 80px; font-weight: 800;
-          color: rgba(108,142,255,0.1); line-height: 1;
-        }
-        .quote-emoji { font-size: 22px; margin-bottom: 8px; }
-        .quote-text {
-          font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
-          color: var(--text); line-height: 1.4; position: relative; z-index: 1;
-        }
-        .quote-author { font-size: 11px; color: var(--muted); margin-top: 8px; }
-
         /* ── MOBILE ── */
         @media (max-width: 768px) {
           html, body { overflow: hidden; }
@@ -1144,15 +1125,6 @@ export default function Dashboard() {
                     )
                   })
                 )}
-              </div>
-
-              {/* DAILY QUOTE */}
-              <div className="quote-card">
-                <div className="quote-emoji">💫</div>
-                <div className="quote-text">&ldquo;Teamwork makes the dream work&rdquo;</div>
-                <div className="quote-author" suppressHydrationWarning>
-                  Daily family quote · {new Date().toLocaleDateString('en-NZ', {weekday: 'long'})}
-                </div>
               </div>
 
             </div>
