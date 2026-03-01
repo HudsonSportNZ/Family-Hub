@@ -218,6 +218,22 @@ export default function MessageThread({ threadId }: { threadId: string }) {
       // Register the real ID so the real-time handler skips it
       sentIdsRef.current.add(realMsg.id)
       setMessages(prev => prev.map(m => m.id === optimisticId ? realMsg : m))
+
+      // Fire push notifications to other family members (fire-and-forget)
+      fetch('/api/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sender: currentUser.name,
+          threadId,
+          title: currentUser.name,
+          body: type === 'gif'
+            ? '📷 Sent a GIF'
+            : content.length > 60
+              ? content.slice(0, 60) + '…'
+              : content,
+        }),
+      }).catch(() => {})
     }
   }
 

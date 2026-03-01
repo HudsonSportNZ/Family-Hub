@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import NotificationBanner from '@/app/components/NotificationBanner'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -190,6 +191,7 @@ export default function ThreadList() {
           WebkitOverflowScrolling: 'touch',
           scrollbarWidth: 'none',
         } as React.CSSProperties}>
+          <NotificationBanner />
           {threads.map((thread, idx) => {
             const isLast = idx === threads.length - 1
             return (
