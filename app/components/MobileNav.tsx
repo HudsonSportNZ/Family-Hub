@@ -11,11 +11,11 @@ const supabase = createClient(
 )
 
 const ALL_NAV_ITEMS = [
-  { id: 'tasks',    icon: '✅', label: 'Tasks',    href: '/tasks'    },
-  { id: 'schedule', icon: '📅', label: 'Calendar', href: '/calendar' },
-  { id: 'groceries', icon: '🛒', label: 'List',    href: '/groceries' },
-  { id: 'money',    icon: '💰', label: 'Money',    href: null        },
-  { id: 'chat',     icon: '💬', label: 'Chat',     href: '/chat'     },
+  { id: 'home',      icon: null,  label: 'Home',     href: '/'          },
+  { id: 'tasks',     icon: '✅',  label: 'To Do',    href: '/tasks'     },
+  { id: 'schedule',  icon: '📅',  label: 'Calendar', href: '/calendar'  },
+  { id: 'groceries', icon: '🛒',  label: 'Lists',    href: '/groceries' },
+  { id: 'chat',      icon: '💬',  label: 'Chat',     href: '/chat'      },
 ]
 
 export default function MobileNav() {
@@ -56,9 +56,7 @@ export default function MobileNav() {
   // Hide on individual thread pages — MessageThread takes over full screen
   if (pathname?.startsWith('/chat/')) return null
 
-  const navItems = currentUser?.role === 'kid'
-    ? ALL_NAV_ITEMS.filter(item => item.id !== 'money')
-    : ALL_NAV_ITEMS
+  const navItems = ALL_NAV_ITEMS
 
   const getActiveId = () => {
     if (pathname === '/') return 'home'
@@ -114,6 +112,18 @@ export default function MobileNav() {
             font-size: 19px;
             line-height: 1;
           }
+          .mobile-bottom-nav-home-logo {
+            width: 26px;
+            height: 26px;
+            border-radius: 7px;
+            display: block;
+            object-fit: cover;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+          }
+          .mobile-bottom-nav-item.active .mobile-bottom-nav-home-logo {
+            opacity: 1;
+          }
           .mobile-bottom-nav-label {
             font-size: 8.5px;
             font-weight: 600;
@@ -159,7 +169,10 @@ export default function MobileNav() {
                 href={item.href}
                 className={`mobile-bottom-nav-item ${isActive ? 'active' : ''}`}
               >
-                <div className="mobile-bottom-nav-icon">{item.icon}</div>
+                {item.id === 'home'
+                  ? <img src="/icons/apple-touch-icon.png" className="mobile-bottom-nav-home-logo" alt="Home" />
+                  : <div className="mobile-bottom-nav-icon">{item.icon}</div>
+                }
                 <div className="mobile-bottom-nav-label">{item.label}</div>
                 {showBadge && (
                   <div className="nav-unread-badge">

@@ -127,6 +127,389 @@ const FAMILY = [
   { id: 'J', label: 'James',  color: '#F472B6' },
 ]
 
+const QUOTES = [
+  'Today we try again, not perfectly, just honestly.',
+  'Mornings feel easier when everyone helps a little.',
+  'Being kind at home matters most.',
+  'We solve problems calmly in this house.',
+  'A messy start doesn\'t ruin the day.',
+  'School mornings reward preparation the night before.',
+  'Helping without reminders is real maturity.',
+  'Hard homework grows smart brains.',
+  'Tired parents still love loudly.',
+  'Good siblings protect each other, even while arguing.',
+  'Try first, complain later.',
+  'Every family improves slowly together.',
+  'Apologising quickly is a strength.',
+  'Everyone gets overwhelmed sometimes. Reset and continue.',
+  'You are allowed to learn slowly.',
+  'Confidence comes after practice, not before.',
+  'Effort matters more than natural talent.',
+  'Calm voices fix more problems than loud ones.',
+  'Our home is a teamwork zone.',
+  'Responsibility creates freedom later.',
+  'Be helpful before being entertained.',
+  'A tidy room helps your brain relax.',
+  'Strong families communicate clearly.',
+  'Some days are hard. Keep showing up.',
+  'You can restart your attitude anytime today.',
+  'Respect grows trust.',
+  'Finishing tasks feels better than avoiding them.',
+  'Everyone contributes to a happy home.',
+  'Courage is doing it anyway.',
+  'Make future-you thankful tonight.',
+  'Listening carefully shows real respect.',
+  'Progress beats perfection every time.',
+  'You don\'t have to win to improve.',
+  'The first step breaks the fear.',
+  'Everyone is learning, including adults.',
+  'We speak kindly here, even frustrated.',
+  'Gratitude changes bad moods quickly.',
+  'A deep breath solves half the problem.',
+  'Being early makes life easier.',
+  'Practice builds confidence.',
+  'Family time is important work.',
+  'Do small jobs properly.',
+  'We clean up after ourselves.',
+  'Strong character forms in ordinary days.',
+  'Choose helpful, not easy.',
+  'Take turns fairly today.',
+  'Patience is powerful.',
+  'You are capable of hard things.',
+  'Think before reacting.',
+  'Help first, relax later.',
+  'Encourage someone today.',
+  'Be brave enough to ask questions.',
+  'Morning moods set afternoon outcomes.',
+  'Respect sleep; tomorrow depends on it.',
+  'Do the next right thing.',
+  'Calm choices prevent big problems.',
+  'Your effort affects everyone at home.',
+  'Kind words stay in hearts longer.',
+  'Responsibility builds confidence.',
+  'Try again with a better plan.',
+  'Good habits make easy mornings.',
+  'Show appreciation for small efforts.',
+  'Be someone siblings can trust.',
+  'Mistakes are part of learning.',
+  'Cooperation makes evenings peaceful.',
+  'Support people when they struggle.',
+  'Clean spaces create calm minds.',
+  'You\'re stronger than this frustration.',
+  'Do hard tasks before screens.',
+  'Make the house better than you found it.',
+  'Parents aren\'t perfect either.',
+  'Finish what you start.',
+  'Every day teaches something useful.',
+  'Be proud of effort today.',
+  'Share responsibility fairly.',
+  'Practice patience with siblings.',
+  'Calm mornings begin with preparation.',
+  'Everyone deserves respect at home.',
+  'Speak truthfully and kindly.',
+  'Growth happens outside comfort.',
+  'Keep promises, even small ones.',
+  'Choose gratitude tonight.',
+  'Help younger family members learn.',
+  'A calm mind solves faster.',
+  'Being organised saves time later.',
+  'Complaining doesn\'t fix problems.',
+  'Ask before assuming.',
+  'Kindness is remembered.',
+  'Everyone improves at their own pace.',
+  'Rest, then continue.',
+  'Focus on what you can control.',
+  'Learn from yesterday\'s mistake.',
+  'We help each other succeed.',
+  'Take responsibility quickly.',
+  'Be patient while others learn.',
+  'Do chores before reminders.',
+  'Encouragement builds confidence.',
+  'Respect family routines.',
+  'Keep trying even when slow.',
+  'Do your part today.',
+  'Calm homes are built by calm voices.',
+  'Think long-term, not just tonight.',
+  'Every good habit starts awkwardly.',
+  'Try solving it before asking help.',
+  'Celebrate improvement, not just results.',
+  'Be gentle with tired people.',
+  'Everyone has bad days sometimes.',
+  'Practice makes tomorrow easier.',
+  'Being reliable earns trust.',
+  'Kindness counts most inside the home.',
+  'Strong mornings start the night before.',
+  'Keep learning even after mistakes.',
+  'Do small tasks immediately.',
+  'Avoiding problems makes them bigger.',
+  'Apologise when wrong.',
+  'Accept apologies when given.',
+  'Respect shared spaces.',
+  'A helpful attitude changes everything.',
+  'Be patient with yourself today.',
+  'Help parents without being asked.',
+  'Kind actions matter more than big speeches.',
+  'Consistency beats bursts of effort.',
+  'Speak up respectfully.',
+  'Every person here matters.',
+  'Hard work today means easier tomorrow.',
+  'Stay calm during disagreements.',
+  'Cooperation speeds everything up.',
+  'Responsibility is a privilege.',
+  'Try your best, not someone else\'s best.',
+  'Keep practicing.',
+  'The day improves after one good decision.',
+  'Support your siblings today.',
+  'Think of others before yourself sometimes.',
+  'Calm first, solutions second.',
+  'Be dependable.',
+  'Don\'t quit early.',
+  'Do it properly once.',
+  'Ask kindly.',
+  'Share fairly.',
+  'Listen fully.',
+  'Stay curious.',
+  'Learn something new.',
+  'Be respectful online and offline.',
+  'Care for belongings.',
+  'Appreciate your teachers.',
+  'Be patient in queues.',
+  'Use encouraging words.',
+  'Do your responsibilities early.',
+  'Be brave at school.',
+  'Tell the truth.',
+  'Kindness shows real strength.',
+  'One calm person calms the room.',
+  'Focus beats rushing.',
+  'Be thoughtful before speaking.',
+  'Try again after rest.',
+  'Everyone grows differently.',
+  'Practice makes mornings smoother.',
+  'Finish homework before relaxing.',
+  'Respect family time.',
+  'Be proud of improvement.',
+  'Show empathy when others struggle.',
+  'Stay patient during learning.',
+  'Accept feedback positively.',
+  'Encourage effort in others.',
+  'Tidy before bedtime.',
+  'Prepare tomorrow tonight.',
+  'You can do difficult things.',
+  'Progress happens slowly.',
+  'Work steadily.',
+  'Calm beats fast.',
+  'Support people publicly, correct privately.',
+  'Be generous with help.',
+  'Keep trying different strategies.',
+  'Rest improves performance.',
+  'Help younger ones learn safely.',
+  'Respect shared time.',
+  'Speak respectfully to parents.',
+  'Think before clicking.',
+  'Small kindnesses matter.',
+  'Trust grows from honesty.',
+  'Choose effort over excuses.',
+  'Be responsible with screens.',
+  'Priorities first, fun later.',
+  'Practice gratitude before sleep.',
+  'Cooperation solves evenings faster.',
+  'Clean as you go.',
+  'Own your choices.',
+  'Stay patient with difficult tasks.',
+  'Every day is practice for adulthood.',
+  'Encourage learning curiosity.',
+  'Keep promises made.',
+  'Be supportive at dinner conversations.',
+  'Calm down before solving.',
+  'Help set the table.',
+  'Share responsibilities equally.',
+  'Think long-term consequences.',
+  'Respect bedtime routines.',
+  'Keep improving steadily.',
+  'Focus on progress.',
+  'You belong here.',
+  'Family is built daily by actions.',
+  'Respect mornings. They shape days.',
+  'Make today easier for Mum and Dad.',
+  'Offer help before entertainment.',
+  'A good attitude helps everyone.',
+  'Take pride in simple tasks.',
+  'The right thing is rarely the easiest.',
+  'Be kind even when tired.',
+  'Clean spaces help clear thinking.',
+  'Learning takes patience.',
+  'Trust yourself trying.',
+  'Practice resilience.',
+  'You are improving every week.',
+  'Help siblings succeed.',
+  'Encourage younger kids kindly.',
+  'Calm decisions beat quick reactions.',
+  'Finish chores properly.',
+  'Don\'t rush important things.',
+  'Appreciate family dinners.',
+  'Talk honestly about feelings.',
+  'Keep growing.',
+  'Be respectful at school.',
+  'Choose patience today.',
+  'Make someone\'s day easier.',
+  'Be brave asking help.',
+  'Effort compounds.',
+  'Good habits build good lives.',
+  'Stay organised today.',
+  'Be dependable for your family.',
+  'Think solutions, not blame.',
+  'Encourage learning effort.',
+  'Speak kindly during disagreements.',
+  'Try again calmly.',
+  'Your behaviour affects everyone.',
+  'Respect shared responsibilities.',
+  'Help prepare meals.',
+  'Clean up after eating.',
+  'Keep practicing difficult skills.',
+  'Be supportive during hard days.',
+  'Finish strong today.',
+  'Encourage positivity.',
+  'Be responsible with time.',
+  'Rest when needed.',
+  'Try your best at school.',
+  'Learn from feedback.',
+  'Help without expecting reward.',
+  'Practice gratitude at night.',
+  'Make thoughtful choices.',
+  'Stay patient with yourself.',
+  'Keep going.',
+  'Some days we just show up. That counts.',
+  'Breakfast conversations matter more than we realise.',
+  'A calm goodbye helps school confidence.',
+  'Pack bags early; stress sleeps late.',
+  'Homework done early feels amazing later.',
+  'Helping tonight makes tomorrow peaceful.',
+  'You don\'t need to rush growing up.',
+  'Ask questions. Curious kids become capable adults.',
+  'Try solving sibling problems without shouting.',
+  'Parents worry because they care deeply.',
+  'A hug fixes many moods.',
+  'Take responsibility before explanations.',
+  'Even five minutes of effort matters.',
+  'Speak how you want to be spoken to.',
+  'Try again after a snack and water.',
+  'Being reliable is a quiet superpower.',
+  'Prepare for tomorrow before relaxing tonight.',
+  'Family dinners are memory-making time.',
+  'Screens wait. People first.',
+  'Learn to do boring things well.',
+  'You\'re building your future habits today.',
+  'Clean backpacks prevent morning chaos.',
+  'Ask how someone\'s day was.',
+  'Do it properly the first time.',
+  'Encourage effort, not just results.',
+  'Every hard skill was once confusing.',
+  'We help tired people here.',
+  'Being early is respectful.',
+  'Think about tomorrow-morning you.',
+  'Fix small messes immediately.',
+  'Read a little every day.',
+  'Say thank you often.',
+  'Admit mistakes quickly.',
+  'Apologise sincerely.',
+  'Accept help gratefully.',
+  'Share success humbly.',
+  'Support someone nervous today.',
+  'You are safe to try here.',
+  'Practice before performance.',
+  'You learn fastest when uncomfortable.',
+  'Good days follow good preparation.',
+  'Speak kindly at breakfast.',
+  'Start homework before screens.',
+  'Courage grows through repetition.',
+  'Responsibility earns independence.',
+  'Encourage someone struggling.',
+  'Calm thinking beats panic thinking.',
+  'Focus on improvement, not comparison.',
+  'Ask what you can do.',
+  'Offer to help clear dishes.',
+  'A peaceful bedtime starts after dinner.',
+  'Practice reading aloud confidently.',
+  'Everyone here is on your team.',
+  'Be the reason home feels safe.',
+  'Keep promises you make.',
+  'A quiet room helps homework.',
+  'Respect shared mornings.',
+  'Prepare clothes the night before.',
+  'Start tasks earlier than feels necessary.',
+  'Celebrate finishing something difficult.',
+  'Learn patience waiting your turn.',
+  'Pay attention to instructions.',
+  'Encourage siblings during hard tasks.',
+  'One good decision can save a day.',
+  'Help carry groceries.',
+  'Talk through problems calmly.',
+  'Drink water, then decide.',
+  'Everyone deserves another chance.',
+  'Today is practice for adulthood.',
+  'Effort compounds quietly.',
+  'Keep improving a little daily.',
+  'Your attitude travels with you.',
+  'You\'re becoming someone dependable.',
+  'Be trustworthy even unwatched.',
+  'Choose honesty over convenience.',
+  'Kindness makes strong friendships.',
+  'You can handle disappointment.',
+  'Ask for guidance early.',
+  'Finish what you begin.',
+  'Respect people\'s time.',
+  'Be brave raising your hand.',
+  'Tidy desks help thinking.',
+  'A plan reduces worry.',
+  'Encourage shy friends.',
+  'Focus during explanations.',
+  'Speak respectfully to teachers.',
+  'Say goodnight properly.',
+  'Start mornings without rushing others.',
+  'Do something thoughtful today.',
+  'Learning takes repetition.',
+  'Accept constructive correction.',
+  'Keep practicing skills patiently.',
+  'Small efforts stack into big results.',
+  'You\'re growing even when tired.',
+  'Try once more before quitting.',
+  'Calm breathing resets frustration.',
+  'Respect shared family spaces.',
+  'Be kind after long days.',
+  'Keep perspective during problems.',
+  'Every day is a training day.',
+  'Offer encouragement freely.',
+  'Be someone others rely on.',
+  'Take pride in reliability.',
+  'Do the difficult thing early.',
+  'Share the remote fairly.',
+  'Laugh often at dinner.',
+  'Support parents sometimes too.',
+  'Make mornings easier for everyone.',
+  'End the day peacefully.',
+  'Gratitude improves sleep.',
+  'Rest prepares success.',
+  'Tomorrow rewards preparation.',
+  'Growth happens quietly.',
+  'You are loved here daily.',
+  'The Hudson family shows up for each other.',
+]
+
+function getDailyQuote(): string {
+  const now = new Date()
+  const start = new Date(now.getFullYear(), 0, 0)
+  const diff = now.getTime() - start.getTime()
+  const oneDay = 1000 * 60 * 60 * 24
+  const dayOfYear = Math.floor(diff / oneDay) // 1–365
+  return QUOTES[(dayOfYear - 1) % QUOTES.length]
+}
+
+function getDayOfYear(): number {
+  const now = new Date()
+  const start = new Date(now.getFullYear(), 0, 0)
+  return Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+}
+
 export default function Dashboard() {
   const pathname = usePathname()
   const activeNav = pathname === '/' ? 'home' : (navItems.find(i => i.href && i.href !== '/' && pathname.startsWith(i.href))?.id ?? 'home')
@@ -138,6 +521,17 @@ export default function Dashboard() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const [currentUser, setCurrentUser] = useState<{ name: string; role: string } | null>(null)
   const [tonightMeal, setTonightMeal] = useState<{ emoji: string; meal_name: string; cook_time?: string } | null | undefined>(undefined)
+  const [quoteOpen, setQuoteOpen] = useState(false)
+
+  const dailyQuote = getDailyQuote()
+  const quotePreview = dailyQuote.split(' ').slice(0, 3).join(' ') + '...'
+  const dayOfYear = getDayOfYear()
+  const quoteDate = (() => {
+    const d = new Date()
+    const weekday = d.toLocaleDateString('en-NZ', { weekday: 'long' })
+    const dayMonth = d.toLocaleDateString('en-NZ', { day: 'numeric', month: 'long' })
+    return `${weekday} ${dayMonth}`
+  })()
 
   useEffect(() => {
     try {
@@ -488,6 +882,55 @@ export default function Dashboard() {
           .app { flex-direction: column; }
           .dash-greeting { font-size: 22px; }
         }
+
+        /* ── QUOTE MODAL ── */
+        @keyframes quoteModalIn {
+          from { opacity: 0; transform: scale(0.95); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+        .quote-modal-backdrop {
+          position: fixed; inset: 0; z-index: 1000;
+          background: rgba(0,0,0,0.85);
+          backdrop-filter: blur(12px);
+          display: flex; align-items: center; justify-content: center;
+          padding: 24px;
+        }
+        .quote-modal-card {
+          max-width: 340px; width: 100%;
+          background: linear-gradient(135deg, rgba(108,142,255,0.12), rgba(167,139,250,0.08));
+          border: 1px solid rgba(108,142,255,0.2);
+          border-radius: 24px; padding: 32px 28px;
+          position: relative; overflow: hidden;
+          animation: quoteModalIn 0.2s ease-out;
+        }
+        .quote-modal-deco {
+          position: absolute; top: -10px; left: 12px;
+          font-family: 'Syne', sans-serif; font-size: 72px; font-weight: 800;
+          color: rgba(108,142,255,0.15); line-height: 1;
+          user-select: none; pointer-events: none; z-index: 0;
+        }
+        .quote-modal-close {
+          position: absolute; top: 14px; right: 14px;
+          background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 50%; width: 30px; height: 30px;
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer; color: rgba(240,242,248,0.6);
+          font-size: 16px; line-height: 1;
+        }
+        .quote-modal-body { position: relative; z-index: 1; text-align: center; }
+        .quote-modal-sparkle { font-size: 28px; margin-bottom: 12px; }
+        .quote-modal-text {
+          font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700;
+          color: #F0F2F8; line-height: 1.5; text-align: center;
+        }
+        .quote-modal-divider { height: 1px; background: rgba(255,255,255,0.08); margin: 20px 0; }
+        .quote-modal-footer { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--muted); text-align: center; }
+        .quote-modal-badge {
+          display: inline-block;
+          background: rgba(108,142,255,0.1); color: var(--accent);
+          font-size: 10px; font-weight: 700;
+          padding: 4px 12px; border-radius: 20px; margin-top: 8px;
+        }
       `}</style>
 
       <div className="app">
@@ -595,10 +1038,10 @@ export default function Dashboard() {
                 )}
                 <div className="qc-bar" style={{background:'var(--pink)'}} />
               </a>
-              <div className="quick-card">
+              <div className="quick-card" onClick={() => setQuoteOpen(true)}>
                 <div className="qc-icon">💬</div>
                 <div className="qc-label">Quote</div>
-                <div className="qc-value">Daily</div>
+                <div className="qc-value" suppressHydrationWarning>{quotePreview}</div>
                 <div className="qc-sub">Tap to read</div>
                 <div className="qc-bar" style={{background:'var(--accent2)'}} />
               </div>
@@ -731,6 +1174,26 @@ export default function Dashboard() {
             setSelectedEvent(null)
           }}
         />
+      )}
+
+      {quoteOpen && (
+        <div className="quote-modal-backdrop" onClick={() => setQuoteOpen(false)}>
+          <div className="quote-modal-card" onClick={e => e.stopPropagation()}>
+            <div className="quote-modal-deco">&ldquo;</div>
+            <button className="quote-modal-close" onClick={() => setQuoteOpen(false)}>×</button>
+            <div className="quote-modal-body">
+              <div className="quote-modal-sparkle">✨</div>
+              <div className="quote-modal-text" suppressHydrationWarning>{dailyQuote}</div>
+              <div className="quote-modal-divider" />
+              <div className="quote-modal-footer" suppressHydrationWarning>
+                Hudson Family · {quoteDate}
+              </div>
+              <div className="quote-modal-badge" suppressHydrationWarning>
+                Day {dayOfYear} of 365
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   )
