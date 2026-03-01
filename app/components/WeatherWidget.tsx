@@ -2,67 +2,93 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 
-interface WeatherData {
+interface OWMResponse {
   current: {
-    temperature_2m: number
-    weathercode: number
-    wind_speed_10m: number
+    temp: number
+    weather: { id: number; description: string }[]
+    wind_speed: number // m/s
   }
-  daily: {
-    temperature_2m_max: number[]
-    temperature_2m_min: number[]
-  }
+  hourly: { dt: number; temp: number }[]
+  daily: { temp: { min: number; max: number } }[]
 }
 
-function getWeatherInfo(code: number): { label: string; emoji: string } {
-  if (code === 0)  return { label: 'Clear Sky',     emoji: '☀️' }
-  if (code === 1)  return { label: 'Mainly Clear',  emoji: '🌤️' }
-  if (code === 2)  return { label: 'Partly Cloudy', emoji: '⛅' }
-  if (code === 3)  return { label: 'Overcast',      emoji: '☁️' }
-  if (code <= 49)  return { label: 'Foggy',         emoji: '🌫️' }
-  if (code <= 57)  return { label: 'Drizzle',       emoji: '🌦️' }
-  if (code <= 67)  return { label: 'Rain',          emoji: '🌧️' }
-  if (code <= 77)  return { label: 'Snowfall',      emoji: '❄️' }
-  if (code <= 82)  return { label: 'Rain Showers',  emoji: '🌦️' }
-  if (code <= 86)  return { label: 'Snow Showers',  emoji: '🌨️' }
-  if (code <= 99)  return { label: 'Thunderstorm',  emoji: '⛈️' }
+// Module-level cache — survives component remounts within the same session
+let _cache: OWMResponse | null = null
+let _cacheTs = 0
+const CACHE_TTL = 15 * 60 * 1000 // 15 minutes
+const REFRESH_INTERVAL = 15 * 60 * 1000
+
+const API_URL =
+  'https://api.openweathermap.org/data/3.0/onecall' +
+  '?lat=-41.2274&lon=174.8850' +
+  '&exclude=minutely,alerts' +
+  '&units=metric' +
+  `&appid=${process.env.NEXT_PUBLIC_WEATHER_API_KEY}`
+
+function getWeatherInfo(id: number): { label: string; emoji: string } {
+  if (id === 800)              return { label: 'Clear Sky',     emoji: '☀️' }
+  if (id === 801)              return { label: 'Mainly Clear',  emoji: '🌤️' }
+  if (id === 802)              return { label: 'Partly Cloudy', emoji: '⛅' }
+  if (id === 803 || id === 804) return { label: 'Overcast',    emoji: '☁️' }
+  if (id >= 200 && id < 300)  return { label: 'Thunderstorm',  emoji: '⛈️' }
+  if (id >= 300 && id < 400)  return { label: 'Drizzle',       emoji: '🌦️' }
+  if (id >= 500 && id < 600)  return { label: 'Rain',          emoji: '🌧️' }
+  if (id >= 600 && id < 700)  return { label: 'Snowfall',      emoji: '❄️' }
+  if (id >= 700 && id < 800)  return { label: 'Foggy',         emoji: '🌫️' }
   return { label: 'Unknown', emoji: '🌡️' }
+}
+
+// Return the hour (0–23) for a Unix timestamp in NZ local time
+function nzHour(dt: number): number {
+  return parseInt(
+    new Date(dt * 1000).toLocaleString('en-NZ', {
+      timeZone: 'Pacific/Auckland',
+      hour: 'numeric',
+      hour12: false,
+    }),
+    10
+  )
+}
+
+function findHourTemp(hourly: OWMResponse['hourly'], targetHour: number): number {
+  const match = hourly.find(h => nzHour(h.dt) === targetHour)
+  return Math.round((match ?? hourly[0]).temp)
 }
 
 function fmtAge(fetchedAt: Date): string {
   const mins = Math.floor((Date.now() - fetchedAt.getTime()) / 60000)
-  if (mins < 1)  return 'just now'
+  if (mins < 1)   return 'just now'
   if (mins === 1) return '1 min ago'
   return `${mins} mins ago`
 }
 
-const REFRESH_INTERVAL = 10 * 60 * 1000 // 10 minutes
-
-const API_URL =
-  'https://api.open-meteo.com/v1/forecast' +
-  '?latitude=-41.2247&longitude=174.8775' +
-  '&current=temperature_2m,weathercode,wind_speed_10m' +
-  '&daily=temperature_2m_max,temperature_2m_min,precipitation_sum' +
-  '&timezone=Pacific/Auckland'
-
 export default function WeatherWidget() {
-  const [weather, setWeather]     = useState<WeatherData | null>(null)
-  const [loading, setLoading]     = useState(true)
+  const [weather, setWeather]     = useState<OWMResponse | null>(_cache)
+  const [loading, setLoading]     = useState(_cache === null)
   const [error, setError]         = useState(false)
-  const [fetchedAt, setFetchedAt] = useState<Date | null>(null)
-  const [ageLabel, setAgeLabel]   = useState('')
+  const [fetchedAt, setFetchedAt] = useState<Date | null>(_cache ? new Date(_cacheTs) : null)
+  const [ageLabel, setAgeLabel]   = useState(_cache ? fmtAge(new Date(_cacheTs)) : '')
   const [spinning, setSpinning]   = useState(false)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const doFetch = useCallback((showSpinner = false) => {
+    // Use cache if fresh and not manually triggered
+    if (!showSpinner && _cache && Date.now() - _cacheTs < CACHE_TTL) {
+      setWeather(_cache)
+      setLoading(false)
+      return { abort: () => {} }
+    }
+
     if (showSpinner) setSpinning(true)
     const controller = new AbortController()
     fetch(API_URL, { signal: controller.signal })
       .then(r => {
         if (!r.ok) throw new Error('fetch failed')
-        return r.json() as Promise<WeatherData>
+        return r.json() as Promise<OWMResponse>
       })
       .then(data => {
+        _cache = data
+        _cacheTs = Date.now()
         setWeather(data)
         setError(false)
         setLoading(false)
@@ -81,7 +107,7 @@ export default function WeatherWidget() {
     return controller
   }, [])
 
-  /* Initial fetch + 10-min auto-refresh */
+  /* Initial fetch + 15-min auto-refresh */
   useEffect(() => {
     const controller = doFetch()
     timerRef.current = setInterval(() => doFetch(), REFRESH_INTERVAL)
@@ -151,23 +177,17 @@ export default function WeatherWidget() {
     )
   }
 
-  const { current, daily } = weather
-  const { label, emoji } = getWeatherInfo(current.weathercode)
-  const temp  = Math.round(current.temperature_2m)
-  const high  = Math.round(daily.temperature_2m_max[0])
-  const low   = Math.round(daily.temperature_2m_min[0])
-  const wind  = Math.round(current.wind_speed_10m)
-
-  /* Derive time-of-day estimates from daily min/max */
-  const range     = high - low
-  const morning   = Math.round(low  + range * 0.15)
-  const afternoon = high
-  const evening   = Math.round(low  + range * 0.55)
+  const { current, hourly, daily } = weather
+  const { label, emoji } = getWeatherInfo(current.weather[0].id)
+  const temp = Math.round(current.temp)
+  const high = Math.round(daily[0].temp.max)
+  const low  = Math.round(daily[0].temp.min)
+  const wind = Math.round(current.wind_speed * 3.6) // m/s → km/h
 
   const timeSlots = [
-    { label: 'Morning',   temp: morning,   icon: '🌅' },
-    { label: 'Afternoon', temp: afternoon, icon: '☀️' },
-    { label: 'Evening',   temp: evening,   icon: '🌆' },
+    { label: 'Morning',   temp: findHourTemp(hourly, 8),  icon: '🌅' },
+    { label: 'Afternoon', temp: findHourTemp(hourly, 13), icon: '☀️' },
+    { label: 'Evening',   temp: findHourTemp(hourly, 19), icon: '🌆' },
   ]
 
   return (
