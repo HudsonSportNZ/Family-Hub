@@ -1,18 +1,13 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 import {
   format, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
   addDays, addWeeks, addMonths, subDays, subWeeks, subMonths,
   eachDayOfInterval, isSameMonth,
 } from 'date-fns'
 import EventModal, { MEMBERS, CalendarEvent } from './EventModal'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 // ── CONSTANTS ──────────────────────────────────────────────────────────────
 const NZ_TZ    = 'Pacific/Auckland'
@@ -620,13 +615,19 @@ export default function CalendarModule() {
   const [modalHour,   setModalHour]   = useState(9)
   const [, setTick] = useState(0) // force re-render every minute for time indicator
 
+  const hasLoaded = useRef(false)
+
   // ── Fetch events
   const fetchEvents = useCallback(async () => {
+    if (!hasLoaded.current) setLoading(true)
     const { data, error } = await supabase
       .from('events')
       .select('*')
       .order('start_time')
-    if (!error && data) setEvents(data as CalendarEvent[])
+    if (!error && data) {
+      setEvents(data as CalendarEvent[])
+      hasLoaded.current = true
+    }
     setLoading(false)
   }, [])
 
@@ -835,14 +836,14 @@ export default function CalendarModule() {
         </div>
 
         {/* ── LOADING ── */}
-        {loading && (
+        {loading && events.length === 0 && (
           <div style={{ textAlign: 'center', padding: 40, color: 'rgba(240,242,248,0.4)', fontSize: 14 }}>
             Loading events…
           </div>
         )}
 
         {/* ── VIEWS ── */}
-        {!loading && view === 'day' && (
+        {(!loading || events.length > 0) && view === 'day' && (
           <DayView
             date={currentDate}
             events={expandedEvents}
@@ -851,7 +852,7 @@ export default function CalendarModule() {
             onSlotClick={openCreate}
           />
         )}
-        {!loading && view === 'week' && (
+        {(!loading || events.length > 0) && view === 'week' && (
           <WeekView
             weekStart={weekStart}
             events={expandedEvents}
@@ -861,7 +862,7 @@ export default function CalendarModule() {
             onDayHeaderClick={d => { setCurrentDate(d); setView('day') }}
           />
         )}
-        {!loading && view === 'month' && (
+        {(!loading || events.length > 0) && view === 'month' && (
           <MonthView
             month={currentDate}
             events={expandedEvents}

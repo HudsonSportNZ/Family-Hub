@@ -1,13 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { useState, useEffect, useCallback } from 'react'
+import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 const NZ_TZ = 'Pacific/Auckland'
 
@@ -117,25 +112,31 @@ export default function SchoolPlanner() {
   const [toast, setToast] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    async function load() {
-      const [m0, m1] = [getWeekStart(0), getWeekStart(1)]
-      const [r0, r1] = await Promise.all([
-        supabase.from('school_plan').select('*').eq('week_start', toYMD(m0)),
-        supabase.from('school_plan').select('*').eq('week_start', toYMD(m1)),
-      ])
-      const next: [Record<DayKey, DayPlan>, Record<DayKey, DayPlan>] = [makeEmptyWeek(), makeEmptyWeek()]
-      ;(r0.data ?? []).forEach((row: Record<string, unknown>) => { next[0][row.day_of_week as DayKey] = rowToPlan(row) })
-      ;(r1.data ?? []).forEach((row: Record<string, unknown>) => { next[1][row.day_of_week as DayKey] = rowToPlan(row) })
-      setPlans(next)
-      setLoading(false)
-
-      const today = getNZToday()
-      const dow = today.getDay()
-      setOpenDay(dow >= 1 && dow <= 5 ? DAY_CONFIG[dow - 1].key : 'monday')
-    }
-    load()
+  const load = useCallback(async () => {
+    const [m0, m1] = [getWeekStart(0), getWeekStart(1)]
+    const [r0, r1] = await Promise.all([
+      supabase.from('school_plan').select('*').eq('week_start', toYMD(m0)),
+      supabase.from('school_plan').select('*').eq('week_start', toYMD(m1)),
+    ])
+    const next: [Record<DayKey, DayPlan>, Record<DayKey, DayPlan>] = [makeEmptyWeek(), makeEmptyWeek()]
+    ;(r0.data ?? []).forEach((row: Record<string, unknown>) => { next[0][row.day_of_week as DayKey] = rowToPlan(row) })
+    ;(r1.data ?? []).forEach((row: Record<string, unknown>) => { next[1][row.day_of_week as DayKey] = rowToPlan(row) })
+    setPlans(next)
+    setLoading(false)
   }, [])
+
+  useEffect(() => {
+    load()
+    const today = getNZToday()
+    const dow = today.getDay()
+    setOpenDay(dow >= 1 && dow <= 5 ? DAY_CONFIG[dow - 1].key : 'monday')
+  }, [load])
+
+  useEffect(() => {
+    const handler = () => { if (document.visibilityState === 'visible') load() }
+    document.addEventListener('visibilitychange', handler)
+    return () => document.removeEventListener('visibilitychange', handler)
+  }, [load])
 
   useEffect(() => {
     if (!toast) return

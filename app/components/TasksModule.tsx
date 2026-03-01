@@ -1,12 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { supabase } from '@/lib/supabase'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Member = 'M' | 'D' | 'I' | 'J'
@@ -159,8 +154,10 @@ export default function TasksModule() {
   const [activeCategory, setActiveCategory] = useState<string>('all')
   const [error, setError] = useState<string | null>(null)
 
+  const hasLoaded = useRef(false)
+
   const fetchData = useCallback(async () => {
-    setLoading(true)
+    if (!hasLoaded.current) setLoading(true)
     const [{ data: taskData, error: taskError }, { data: completionData }] = await Promise.all([
       supabase.from('tasks').select('*').order('created_at', { ascending: false }),
       supabase.from('task_completions').select('*').eq('completed_for_date', getToday()),
@@ -168,6 +165,7 @@ export default function TasksModule() {
     if (taskError) console.error('Task fetch error:', taskError)
     setTasks((taskData as Task[]) ?? [])
     setCompletions((completionData as TaskCompletion[]) ?? [])
+    hasLoaded.current = true
     setLoading(false)
   }, [])
 
@@ -417,7 +415,7 @@ export default function TasksModule() {
       </div>
 
       {/* Task list */}
-      {loading ? (
+      {loading && tasks.length === 0 ? (
         <div style={{ textAlign: 'center', color: '#475569', paddingTop: 48 }}>Loading tasks…</div>
       ) : filteredTasks.length === 0 ? (
         <div style={{ textAlign: 'center', paddingTop: 48 }}>

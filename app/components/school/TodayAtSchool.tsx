@@ -1,13 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { useState, useEffect, useCallback } from 'react'
+import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 const NZ_TZ = 'Pacific/Auckland'
 
@@ -71,6 +66,12 @@ const WEEKEND_MESSAGES = [
   { emoji: '🎮', text: "Free time, let's go!" },
 ]
 
+function parseRows(rows: SchoolRow[]): Record<string, SchoolRow> {
+  const map: Record<string, SchoolRow> = {}
+  rows.forEach(r => { map[r.day_of_week] = r })
+  return map
+}
+
 export default function TodayAtSchool() {
   const [today] = useState<Date>(getNZToday)
   const [weekMonday] = useState<Date>(() => getWeekMonday(getNZToday()))
@@ -93,13 +94,7 @@ export default function TodayAtSchool() {
   const [isParent, setIsParent] = useState(false)
   const [weekendMsg] = useState(() => WEEKEND_MESSAGES[Math.floor(Math.random() * WEEKEND_MESSAGES.length)])
 
-  function parseRows(rows: SchoolRow[]): Record<string, SchoolRow> {
-    const map: Record<string, SchoolRow> = {}
-    rows.forEach(r => { map[r.day_of_week] = r })
-    return map
-  }
-
-  function fetchAllData() {
+  const fetchAllData = useCallback(() => {
     Promise.all([
       supabase.from('school_plan').select('*').eq('week_start', toYMD(weekMonday)),
       supabase.from('school_plan').select('*').eq('week_start', toYMD(nextWeekMonday)),
@@ -108,7 +103,7 @@ export default function TodayAtSchool() {
       setNextWeekData(parseRows((r1.data as SchoolRow[]) ?? []))
       setLoading(false)
     })
-  }
+  }, [weekMonday, nextWeekMonday])
 
   useEffect(() => {
     try {
@@ -124,7 +119,7 @@ export default function TodayAtSchool() {
       .subscribe()
 
     return () => { supabase.removeChannel(ch) }
-  }, [])
+  }, [fetchAllData])
 
   // Active context — this week or next week preview
   const activeMonday = viewingNextWeek ? nextWeekMonday : weekMonday
