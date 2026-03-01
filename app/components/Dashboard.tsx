@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 import EventModal from './EventModal'
 import TodayAtSchool from './school/TodayAtSchool'
+import WeatherWidget from './WeatherWidget'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -1032,34 +1033,7 @@ export default function Dashboard() {
             <div className="dash-scroll">
 
               {/* WEATHER HERO */}
-              <div className="weather-hero">
-                <div className="weather-top">
-                  <div>
-                    <div className="weather-temp">18°</div>
-                    <div className="weather-desc">Partly Cloudy</div>
-                    <div className="weather-loc">📍 Wellington, NZ</div>
-                    <div className="weather-stats">
-                      <div>
-                        <div className="wstat-val">22°</div>
-                        <div className="wstat-lbl">High</div>
-                      </div>
-                      <div>
-                        <div className="wstat-val">14°</div>
-                        <div className="wstat-lbl">Low</div>
-                      </div>
-                      <div>
-                        <div className="wstat-val">18km/h</div>
-                        <div className="wstat-lbl">Wind</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="weather-icon-big">⛅</div>
-                </div>
-                <div className="weather-bottom">
-                  <div className="weather-tag" style={{background:'rgba(52,211,153,0.15)',color:'#34D399'}}>🌿 Good for outdoors</div>
-                  <div className="weather-tag" style={{background:'rgba(34,211,238,0.1)',color:'#22D3EE'}}>⚽ Football conditions</div>
-                </div>
-              </div>
+              <WeatherWidget />
 
               {/* TODAY AT SCHOOL */}
               <TodayAtSchool />
