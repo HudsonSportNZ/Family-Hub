@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase, withRetry } from '@/lib/supabase'
 
 const NZ_TZ = 'Pacific/Auckland'
 
@@ -121,9 +121,13 @@ export default function EventModal({
 
     let result
     if (isEdit && event) {
-      result = await supabase.from('events').update(payload).eq('id', event.id).select().single()
+      result = await withRetry(() =>
+        supabase.from('events').update(payload).eq('id', event.id).select().single()
+      )
     } else {
-      result = await supabase.from('events').insert(payload).select().single()
+      result = await withRetry(() =>
+        supabase.from('events').insert(payload).select().single()
+      )
     }
 
     setSaving(false)
@@ -138,7 +142,9 @@ export default function EventModal({
   const handleDelete = async () => {
     if (!event || !onDelete) return
     setDeleting(true)
-    const { error: delErr } = await supabase.from('events').delete().eq('id', event.id)
+    const { error: delErr } = await withRetry(() =>
+      supabase.from('events').delete().eq('id', event.id)
+    )
     setDeleting(false)
     if (delErr) { setError(`Delete failed: ${delErr.message}`); return }
     onDelete(event.id)

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase, withRetry } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
 const NZ_TZ = 'Pacific/Auckland'
@@ -187,9 +187,11 @@ export default function SchoolPlanner() {
       isabel_activities:  weekPlan[d.key].isabel_activities,
       james_activities:   weekPlan[d.key].james_activities,
     }))
-    const { error } = await supabase
-      .from('school_plan')
-      .upsert(rows, { onConflict: 'week_start,day_of_week' })
+    const { error } = await withRetry(() =>
+      supabase
+        .from('school_plan')
+        .upsert(rows, { onConflict: 'week_start,day_of_week' })
+    )
     setSaving(false)
     setToast(error ? 'Save failed — try again' : 'Week saved ✓')
   }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase, withRetry } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import MessageInput from './MessageInput'
 
@@ -200,18 +200,20 @@ export default function MessageThread({ threadId }: { threadId: string }) {
     setMessages(prev => [...prev, optimistic])
     setTimeout(scrollToBottom, 50)
 
-    // Persist to Supabase
-    const { data } = await supabase
-      .from('messages')
-      .insert({
-        thread_id: threadId,
-        sender: currentUser.name,
-        content,
-        message_type: type,
-        read_by: [currentUser.name],
-      })
-      .select()
-      .single()
+    // Persist to Supabase — retry automatically on cold-start failures
+    const { data, error } = await withRetry(() =>
+      supabase
+        .from('messages')
+        .insert({
+          thread_id: threadId,
+          sender: currentUser.name,
+          content,
+          message_type: type,
+          read_by: [currentUser.name],
+        })
+        .select()
+        .single()
+    )
 
     if (data) {
       const realMsg = data as Message
@@ -234,6 +236,9 @@ export default function MessageThread({ threadId }: { threadId: string }) {
               : content,
         }),
       }).catch(() => {})
+    } else if (error) {
+      // All retries failed — remove the optimistic message so it's clear the send failed
+      setMessages(prev => prev.filter(m => m.id !== optimisticId))
     }
   }
 

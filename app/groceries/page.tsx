@@ -1,13 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { supabase, withRetry } from '@/lib/supabase'
 import Link from 'next/link'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 interface GroceryItem {
   id: string
@@ -17,10 +12,11 @@ interface GroceryItem {
 }
 
 export default function GroceriesPage() {
-  const [items, setItems]     = useState<GroceryItem[]>([])
-  const [newName, setNewName] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [adding, setAdding]   = useState(false)
+  const [items, setItems]       = useState<GroceryItem[]>([])
+  const [newName, setNewName]   = useState('')
+  const [loading, setLoading]   = useState(true)
+  const [adding, setAdding]     = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const fetchItems = useCallback(async () => {
     const { data } = await supabase
@@ -45,27 +41,54 @@ export default function GroceriesPage() {
     if (!name || adding) return
     setAdding(true)
     setNewName('')
-    const { error } = await supabase.from('groceries').insert({ name })
-    if (!error) await fetchItems()
+    setSaveError(null)
+    const { error } = await withRetry(() => supabase.from('groceries').insert({ name }))
+    if (!error) {
+      await fetchItems()
+    } else {
+      setNewName(name) // restore input so user can try again
+      setSaveError('Could not add item — please try again')
+    }
     setAdding(false)
   }
 
   const toggleItem = async (item: GroceryItem) => {
     const checked = !item.checked
     setItems(prev => prev.map(i => i.id === item.id ? { ...i, checked } : i))
-    await supabase.from('groceries').update({ checked }).eq('id', item.id)
+    const { error } = await withRetry(() =>
+      supabase.from('groceries').update({ checked }).eq('id', item.id)
+    )
+    if (error) {
+      // Rollback optimistic update
+      setItems(prev => prev.map(i => i.id === item.id ? { ...i, checked: !checked } : i))
+      setSaveError('Could not save — please try again')
+    }
   }
 
   const deleteItem = async (id: string) => {
+    const snapshot = items
     setItems(prev => prev.filter(i => i.id !== id))
-    await supabase.from('groceries').delete().eq('id', id)
+    const { error } = await withRetry(() =>
+      supabase.from('groceries').delete().eq('id', id)
+    )
+    if (error) {
+      setItems(snapshot) // rollback
+      setSaveError('Could not delete — please try again')
+    }
   }
 
   const clearCompleted = async () => {
     const ids = items.filter(i => i.checked).map(i => i.id)
     if (!ids.length) return
+    const snapshot = items
     setItems(prev => prev.filter(i => !i.checked))
-    await supabase.from('groceries').delete().in('id', ids)
+    const { error } = await withRetry(() =>
+      supabase.from('groceries').delete().in('id', ids)
+    )
+    if (error) {
+      setItems(snapshot) // rollback
+      setSaveError('Could not clear items — please try again')
+    }
   }
 
   const unchecked = items.filter(i => !i.checked)
@@ -119,6 +142,22 @@ export default function GroceriesPage() {
           </button>
         )}
       </div>
+
+      {/* ── Error banner ── */}
+      {saveError && (
+        <div style={{
+          background: 'rgba(248,113,113,0.1)', borderBottom: '1px solid rgba(248,113,113,0.2)',
+          color: '#F87171', fontSize: 13, fontWeight: 500,
+          padding: '10px 20px', textAlign: 'center',
+          fontFamily: "'DM Sans', sans-serif",
+        }}>
+          {saveError}
+          <button
+            onClick={() => setSaveError(null)}
+            style={{ marginLeft: 10, background: 'none', border: 'none', color: '#F87171', cursor: 'pointer', fontSize: 14 }}
+          >✕</button>
+        </div>
+      )}
 
       {/* ── Content ── */}
       <div style={{

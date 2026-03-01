@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase, withRetry } from '@/lib/supabase'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Member = 'M' | 'D' | 'I' | 'J'
@@ -177,15 +177,19 @@ export default function TasksModule() {
   const toggleComplete = async (task: Task, member: Member) => {
     const existing = completions.find(c => c.task_id === task.id)
     if (existing) {
-      await supabase.from('task_completions').delete().eq('id', existing.id)
-      setCompletions(prev => prev.filter(c => c.id !== existing.id))
+      const { error } = await withRetry(() =>
+        supabase.from('task_completions').delete().eq('id', existing.id)
+      )
+      if (!error) setCompletions(prev => prev.filter(c => c.id !== existing.id))
     } else {
-      const { data } = await supabase
-        .from('task_completions')
-        .insert({ task_id: task.id, completed_by: member, completed_for_date: getToday() })
-        .select()
-        .single()
-      if (data) setCompletions(prev => [...prev, data as TaskCompletion])
+      const { data, error } = await withRetry(() =>
+        supabase
+          .from('task_completions')
+          .insert({ task_id: task.id, completed_by: member, completed_for_date: getToday() })
+          .select()
+          .single()
+      )
+      if (!error && data) setCompletions(prev => [...prev, data as TaskCompletion])
     }
   }
 
@@ -213,19 +217,21 @@ export default function TasksModule() {
     }
 
     if (editingTask) {
-      const { data, error: updateError } = await supabase
-        .from('tasks').update(payload).eq('id', editingTask.id).select().single()
+      const { data, error: updateError } = await withRetry(() =>
+        supabase.from('tasks').update(payload).eq('id', editingTask.id).select().single()
+      )
       if (updateError) {
-        setError(`Save failed: ${updateError.message}`)
+        setError(`Save failed: ${(updateError as { message?: string }).message ?? 'please try again'}`)
       } else if (data) {
         setTasks(prev => prev.map(t => t.id === editingTask.id ? data as Task : t))
         closeForm()
       }
     } else {
-      const { data, error: insertError } = await supabase
-        .from('tasks').insert(payload).select().single()
+      const { data, error: insertError } = await withRetry(() =>
+        supabase.from('tasks').insert(payload).select().single()
+      )
       if (insertError) {
-        setError(`Save failed: ${insertError.message}`)
+        setError(`Save failed: ${(insertError as { message?: string }).message ?? 'please try again'}`)
       } else if (data) {
         setTasks(prev => [data as Task, ...prev])
         closeForm()
@@ -236,14 +242,18 @@ export default function TasksModule() {
   }
 
   const handleDelete = async (taskId: string) => {
-    await supabase.from('tasks').delete().eq('id', taskId)
-    setTasks(prev => prev.filter(t => t.id !== taskId))
+    const { error } = await withRetry(() =>
+      supabase.from('tasks').delete().eq('id', taskId)
+    )
+    if (!error) setTasks(prev => prev.filter(t => t.id !== taskId))
+    else setError('Delete failed — please try again')
   }
 
   const handleArchive = async (task: Task) => {
-    const { data } = await supabase
-      .from('tasks').update({ is_active: !task.is_active }).eq('id', task.id).select().single()
-    if (data) setTasks(prev => prev.map(t => t.id === task.id ? data as Task : t))
+    const { data, error } = await withRetry(() =>
+      supabase.from('tasks').update({ is_active: !task.is_active }).eq('id', task.id).select().single()
+    )
+    if (!error && data) setTasks(prev => prev.map(t => t.id === task.id ? data as Task : t))
   }
 
   const openNew = () => {

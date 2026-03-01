@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { supabase, withRetry } from '@/lib/supabase'
 
 export async function POST(req: NextRequest) {
   const { subscription, userName } = await req.json()
@@ -8,19 +8,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  const { error } = await withRetry(() =>
+    supabase
+      .from('push_subscriptions')
+      .upsert(
+        { user_name: userName, subscription, endpoint: subscription.endpoint },
+        { onConflict: 'endpoint' }
+      )
   )
 
-  const { error } = await supabase
-    .from('push_subscriptions')
-    .upsert(
-      { user_name: userName, subscription, endpoint: subscription.endpoint },
-      { onConflict: 'endpoint' }
-    )
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return NextResponse.json({ error: (error as { message?: string }).message }, { status: 500 })
 
   return NextResponse.json({ ok: true })
 }

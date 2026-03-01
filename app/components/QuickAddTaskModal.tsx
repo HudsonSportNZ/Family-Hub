@@ -1,12 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { supabase, withRetry } from '@/lib/supabase'
 
 type Member = 'M' | 'D' | 'I' | 'J'
 type Recurrence = 'once' | 'daily' | 'weekly' | 'monthly'
@@ -67,21 +62,23 @@ export default function QuickAddTaskModal({ onClose, onSave }: Props) {
     if (!title.trim()) { setError('Title is required'); return }
     setSaving(true)
     setError('')
-    const { error: err } = await supabase.from('tasks').insert({
-      title:                    title.trim(),
-      description:              description.trim() || null,
-      assigned_to:              assignedTo,
-      recurrence,
-      recurrence_days:          recurrence === 'weekly'  ? recurrenceDays       : null,
-      recurrence_day_of_month:  recurrence === 'monthly' ? (recurrenceDayOfMonth ?? null) : null,
-      due_date:                 recurrence === 'once'    ? dueDate              : null,
-      due_time:                 null,
-      start_date:               getToday(),
-      is_active:                true,
-      priority,
-      category,
-      icon,
-    })
+    const { error: err } = await withRetry(() =>
+      supabase.from('tasks').insert({
+        title:                    title.trim(),
+        description:              description.trim() || null,
+        assigned_to:              assignedTo,
+        recurrence,
+        recurrence_days:          recurrence === 'weekly'  ? recurrenceDays       : null,
+        recurrence_day_of_month:  recurrence === 'monthly' ? (recurrenceDayOfMonth ?? null) : null,
+        due_date:                 recurrence === 'once'    ? dueDate              : null,
+        due_time:                 null,
+        start_date:               getToday(),
+        is_active:                true,
+        priority,
+        category,
+        icon,
+      })
+    )
     setSaving(false)
     if (err) { setError(`Save failed: ${err.message}`); return }
     onSave()

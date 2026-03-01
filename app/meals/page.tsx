@@ -1,14 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { supabase, withRetry } from '@/lib/supabase'
 import Link from 'next/link'
 import MealPlanDay, { type MealPlan } from '../components/meals/MealPlanDay'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 const NZ_TZ = 'Pacific/Auckland'
 
@@ -46,6 +41,7 @@ export default function MealsPage() {
   const [meals, setMeals] = useState<MealPlan[]>([])
   const [editingDate, setEditingDate] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const today = getToday()
   const weekDays = selectedWeek === 0 ? thisWeekDays : nextWeekDays
@@ -81,18 +77,28 @@ export default function MealsPage() {
 
   const handleSave = async (date: string, data: Omit<MealPlan, 'id' | 'meal_date'>) => {
     setSaving(true)
+    setSaveError(null)
     const existing = getMealForDate(date)
+    let error: unknown
     if (existing) {
-      await supabase
-        .from('meal_plan')
-        .update({ ...data, updated_at: new Date().toISOString() })
-        .eq('id', existing.id)
+      ;({ error } = await withRetry(() =>
+        supabase
+          .from('meal_plan')
+          .update({ ...data, updated_at: new Date().toISOString() })
+          .eq('id', existing.id)
+      ))
     } else {
-      await supabase.from('meal_plan').insert({ ...data, meal_date: date })
+      ;({ error } = await withRetry(() =>
+        supabase.from('meal_plan').insert({ ...data, meal_date: date })
+      ))
     }
-    await fetchMeals()
+    if (error) {
+      setSaveError('Could not save meal — please try again')
+    } else {
+      await fetchMeals()
+      setEditingDate(null)
+    }
     setSaving(false)
-    setEditingDate(null)
   }
 
   const handleHeaderAdd = () => {
@@ -192,6 +198,22 @@ export default function MealsPage() {
             </button>
           )}
         </div>
+
+        {/* ── Error banner ── */}
+        {saveError && (
+          <div style={{
+            background: 'rgba(248,113,113,0.1)', borderBottom: '1px solid rgba(248,113,113,0.2)',
+            color: '#F87171', fontSize: 13, fontWeight: 500,
+            padding: '10px 20px', textAlign: 'center',
+            fontFamily: "'DM Sans', sans-serif",
+          }}>
+            {saveError}
+            <button
+              onClick={() => setSaveError(null)}
+              style={{ marginLeft: 10, background: 'none', border: 'none', color: '#F87171', cursor: 'pointer', fontSize: 14 }}
+            >✕</button>
+          </div>
+        )}
 
         {/* Week tabs */}
         <div className="week-tabs">
