@@ -944,7 +944,7 @@ export default function Dashboard() {
         /* ── FAB ── */
         .fab-btn {
           display: none;
-          position: fixed; bottom: 88px; right: 20px;
+          position: fixed; bottom: calc(88px + env(safe-area-inset-bottom, 0px)); right: 20px;
           width: 52px; height: 52px; border-radius: 50%;
           background: linear-gradient(135deg, #6C8EFF, #A78BFA);
           box-shadow: 0 8px 24px rgba(108,142,255,0.4);
@@ -971,7 +971,7 @@ export default function Dashboard() {
 
         .fab-menu {
           display: none;
-          position: fixed; bottom: 152px; right: 20px;
+          position: fixed; bottom: calc(152px + env(safe-area-inset-bottom, 0px)); right: 20px;
           z-index: 50;
           flex-direction: column-reverse; gap: 10px; align-items: flex-end;
         }
