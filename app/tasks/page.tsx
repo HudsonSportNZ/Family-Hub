@@ -3,7 +3,7 @@ import Link from 'next/link'
 
 export default function TasksPage() {
   return (
-    <div style={{ background: '#0D0F14', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ background: '#0D0F14', minHeight: '100vh', fontFamily: "'DM Sans', sans-serif" }}>
       {/* Header with back button */}
       <div style={{
         display: 'flex',
@@ -35,7 +35,7 @@ export default function TasksPage() {
         </Link>
         <img src="/icons/apple-touch-icon.png" alt="" style={{ width: 32, height: 32, borderRadius: 9, display: 'block', flexShrink: 0 }} />
         <span style={{
-          fontFamily: "'Syne', sans-serif",
+          fontFamily: "'DM Sans', sans-serif",
           fontWeight: 700,
           fontSize: 18,
           color: '#F0F2F8',

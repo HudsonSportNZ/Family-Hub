@@ -72,7 +72,7 @@ export default function GroceriesPage() {
   const checked   = items.filter(i => i.checked)
 
   return (
-    <div style={{ background: '#0D0F14', minHeight: '100dvh', fontFamily: "'Inter', sans-serif", width: '100%', overflowX: 'hidden' }}>
+    <div style={{ background: '#0D0F14', minHeight: '100dvh', fontFamily: "'DM Sans', sans-serif", width: '100%', overflowX: 'hidden' }}>
 
       {/* ── Header ── */}
       <div style={{
@@ -99,7 +99,7 @@ export default function GroceriesPage() {
         </Link>
         <img src="/icons/apple-touch-icon.png" alt="" style={{ width: 32, height: 32, borderRadius: 9, display: 'block', flexShrink: 0 }} />
         <span style={{
-          fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 18,
+          fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 18,
           color: '#F0F2F8', flex: 1,
         }}>
           Groceries
@@ -112,7 +112,7 @@ export default function GroceriesPage() {
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.1)',
               borderRadius: 10, padding: '6px 12px', cursor: 'pointer',
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "'DM Sans', sans-serif",
             }}
           >
             Clear {checked.length} done
@@ -145,7 +145,7 @@ export default function GroceriesPage() {
               border: '1px solid rgba(255,255,255,0.07)',
               borderRadius: 12, padding: '11px 14px',
               color: '#F0F2F8', fontSize: 15,
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "'DM Sans', sans-serif",
               outline: 'none', WebkitAppearance: 'none',
             }}
           />
@@ -156,7 +156,7 @@ export default function GroceriesPage() {
               background: newName.trim() && !adding ? '#6C8EFF' : 'rgba(108,142,255,0.3)',
               border: 'none', borderRadius: 12, padding: '11px 20px',
               color: 'white', fontSize: 15, fontWeight: 700,
-              fontFamily: "'Syne', sans-serif",
+              fontFamily: "'DM Sans', sans-serif",
               cursor: newName.trim() && !adding ? 'pointer' : 'default',
               flexShrink: 0,
             }}

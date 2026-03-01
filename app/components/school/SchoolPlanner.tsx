@@ -207,11 +207,11 @@ export default function SchoolPlanner() {
           --accent: #6C8EFF; --accent2: #A78BFA;
           --green: #34D399; --amber: #FBBF24; --red: #F87171; --pink: #F472B6;
         }
-        html, body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; }
+        html, body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; }
         .sp-act-input {
           flex: 1; background: var(--card2); border: 1px solid var(--border);
           border-radius: 8px; padding: 7px 10px; font-size: 11px;
-          color: var(--text); font-family: 'Inter', sans-serif; outline: none; width: 100%;
+          color: var(--text); font-family: 'DM Sans', sans-serif; outline: none; width: 100%;
         }
         .sp-act-input::placeholder { color: var(--muted); }
         .sp-act-input:focus { border-color: rgba(108,142,255,0.35); }
@@ -248,7 +248,7 @@ export default function SchoolPlanner() {
 
           {/* Icon + Title */}
           <img src="/icons/apple-touch-icon.png" alt="" style={{ width: 32, height: 32, borderRadius: 9, display: 'block', flexShrink: 0 }} />
-          <span style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 18, color: '#F0F2F8', flex: 1 }}>
+          <span style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 18, color: '#F0F2F8', flex: 1 }}>
             School Planner
           </span>
 
@@ -260,7 +260,7 @@ export default function SchoolPlanner() {
             style={{
               background: 'var(--accent)', color: 'white',
               padding: '8px 16px', borderRadius: 10,
-              fontSize: 12, fontWeight: 700, fontFamily: "'Syne', sans-serif",
+              fontSize: 12, fontWeight: 700, fontFamily: "'DM Sans', sans-serif",
               border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
               opacity: saving ? 0.7 : 1, transition: 'opacity 0.15s',
             }}
@@ -281,7 +281,7 @@ export default function SchoolPlanner() {
                 onClick={() => setWeekOffset(offset)}
                 style={{
                   padding: '7px 16px', borderRadius: 10, fontSize: 12, fontWeight: 700,
-                  fontFamily: "'Syne', sans-serif",
+                  fontFamily: "'DM Sans', sans-serif",
                   border: `1px solid ${active ? 'rgba(108,142,255,0.35)' : 'var(--border)'}`,
                   background: active ? 'rgba(108,142,255,0.15)' : 'var(--card)',
                   color: active ? 'var(--accent)' : 'var(--muted)',
@@ -329,7 +329,7 @@ export default function SchoolPlanner() {
                     }}
                   >
                     <div>
-                      <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 14, fontWeight: 700 }}>{label}</div>
+                      <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 700 }}>{label}</div>
                       <div style={{ fontSize: 11, color: 'var(--muted)' }} suppressHydrationWarning>{dateLabel}</div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end', flex: 1, marginLeft: 12 }}>
@@ -403,7 +403,7 @@ export default function SchoolPlanner() {
                         <div key={kid}>
                           {/* Kid header */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>
-                            <div style={{ width: 20, height: 20, borderRadius: '50%', background: gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, fontFamily: "'Syne', sans-serif", flexShrink: 0 }}>
+                            <div style={{ width: 20, height: 20, borderRadius: '50%', background: gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
                               {initial}
                             </div>
                             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted2, rgba(240,242,248,0.65))' }}>{name}</div>
@@ -495,7 +495,7 @@ export default function SchoolPlanner() {
           left: '50%', transform: 'translateX(-50%)',
           background: toast.includes('✓') ? 'var(--green)' : 'var(--red)',
           color: '#0D0F14', padding: '10px 20px', borderRadius: 20,
-          fontSize: 13, fontWeight: 700, fontFamily: "'Syne', sans-serif",
+          fontSize: 13, fontWeight: 700, fontFamily: "'DM Sans', sans-serif",
           zIndex: 100, pointerEvents: 'none',
           boxShadow: '0 8px 32px rgba(52,211,153,0.3)',
         }}>

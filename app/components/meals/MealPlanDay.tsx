@@ -67,7 +67,7 @@ export default function MealPlanDay({
         borderBottom: (isEditing || meal) ? '1px solid var(--border)' : 'none',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>
+          <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>
             {dayLabel}
           </div>
           <div style={{ fontSize: 12, color: 'var(--muted)' }}>{dateLabel}</div>
@@ -117,7 +117,7 @@ export default function MealPlanDay({
             <div style={{ fontSize: 40, lineHeight: 1, flexShrink: 0 }}>{meal.emoji}</div>
             <div style={{ flex: 1 }}>
               <div style={{
-                fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 18,
+                fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: 18,
                 color: 'var(--text)', lineHeight: 1.2,
               }}>
                 {meal.meal_name}
@@ -135,7 +135,7 @@ export default function MealPlanDay({
               <div style={{
                 width: 22, height: 22, borderRadius: '50%', background: cookerColor,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 10, fontWeight: 800, color: 'white', fontFamily: 'Syne, sans-serif', flexShrink: 0,
+                fontSize: 10, fontWeight: 800, color: 'white', fontFamily: 'DM Sans, sans-serif', flexShrink: 0,
               }}>
                 {meal.cooked_by[0]}
               </div>

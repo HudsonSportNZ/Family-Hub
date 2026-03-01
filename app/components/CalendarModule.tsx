@@ -142,7 +142,7 @@ function MemberAvatars({ members, size = 16 }: { members: string[]; size?: numbe
             width: size, height: size, borderRadius: '50%',
             background: m.color, display: 'flex', alignItems: 'center',
             justifyContent: 'center', fontSize: size * 0.48, fontWeight: 700,
-            color: 'white', fontFamily: "'Syne', sans-serif", flexShrink: 0,
+            color: 'white', fontFamily: "'DM Sans', sans-serif", flexShrink: 0,
           }}>
             {m.initial}
           </div>
@@ -414,7 +414,7 @@ function WeekView({
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                     width: 26, height: 26, borderRadius: '50%', marginTop: 3,
                     background: today ? '#6C8EFF' : 'transparent',
-                    fontSize: 13, fontWeight: 700, fontFamily: "'Syne', sans-serif",
+                    fontSize: 13, fontWeight: 700, fontFamily: "'DM Sans', sans-serif",
                     color: today ? 'white' : 'rgba(240,242,248,0.85)',
                   }}>
                     {format(d, 'd')}
@@ -562,7 +562,7 @@ function MonthView({
                   background: today ? '#6C8EFF' : 'transparent',
                   fontSize: 11, fontWeight: today ? 700 : 400,
                   color: today ? 'white' : inMonth ? 'rgba(240,242,248,0.85)' : 'rgba(240,242,248,0.3)',
-                  fontFamily: "'Syne', sans-serif",
+                  fontFamily: "'DM Sans', sans-serif",
                 }}>
                   {format(d, 'd')}
                 </div>
@@ -722,7 +722,7 @@ export default function CalendarModule() {
       <style>{`
         .cal-view-btn {
           padding: 5px 12px; border-radius: 8px; font-size: 12px; font-weight: 600;
-          cursor: pointer; transition: all 0.15s; font-family: 'Inter', sans-serif;
+          cursor: pointer; transition: all 0.15s; font-family: 'DM Sans', sans-serif;
           border: 1px solid transparent;
         }
         .cal-view-btn.active {
@@ -746,7 +746,7 @@ export default function CalendarModule() {
           padding: 5px 12px; border-radius: 8px; font-size: 12px; font-weight: 600;
           cursor: pointer; background: rgba(255,255,255,0.06);
           border: 1px solid rgba(255,255,255,0.1); color: rgba(240,242,248,0.7);
-          font-family: 'Inter', sans-serif; transition: all 0.15s;
+          font-family: 'DM Sans', sans-serif; transition: all 0.15s;
         }
         .cal-today-btn:hover { background: rgba(255,255,255,0.1); color: #F0F2F8; }
         .cal-add-btn {
@@ -765,7 +765,7 @@ export default function CalendarModule() {
         }
       `}</style>
 
-      <div style={{ color: '#F0F2F8', fontFamily: "'Inter', sans-serif" }}>
+      <div style={{ color: '#F0F2F8', fontFamily: "'DM Sans', sans-serif" }}>
 
         {/* ── TOOLBAR ── */}
         <div style={{
@@ -781,7 +781,7 @@ export default function CalendarModule() {
           </div>
 
           {/* Title */}
-          <div style={{ flex: 1, fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 15, color: '#F0F2F8', minWidth: 120 }}>
+          <div style={{ flex: 1, fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 15, color: '#F0F2F8', minWidth: 120 }}>
             {headerTitle}
           </div>
 

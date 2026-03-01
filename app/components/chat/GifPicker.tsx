@@ -91,7 +91,7 @@ export default function GifPicker({ onSelect }: GifPickerProps) {
           outline: 'none',
           marginBottom: 10,
           flexShrink: 0,
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: 'DM Sans, sans-serif',
           width: '100%',
           boxSizing: 'border-box',
         }}

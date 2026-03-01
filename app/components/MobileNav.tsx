@@ -89,7 +89,7 @@ export default function MobileNav() {
             left: 0;
             right: 0;
             height: calc(64px + env(safe-area-inset-bottom));
-            background: #13151C;
+            background: #13131a;
             border-top: 1px solid rgba(255,255,255,0.06);
             z-index: 100;
             align-items: center;
@@ -114,7 +114,7 @@ export default function MobileNav() {
             min-width: 0;
           }
           .mobile-bottom-nav-item.active {
-            background: rgba(108,142,255,0.12);
+            background: rgba(96,165,250,0.12);
           }
           .mobile-bottom-nav-icon {
             font-size: 19px;
@@ -141,7 +141,7 @@ export default function MobileNav() {
             white-space: nowrap;
           }
           .mobile-bottom-nav-item.active .mobile-bottom-nav-label {
-            color: #6C8EFF;
+            color: #60a5fa;
           }
           .nav-unread-badge {
             position: absolute;
@@ -159,7 +159,7 @@ export default function MobileNav() {
             align-items: center;
             justify-content: center;
             padding: 0 4px;
-            border: 2px solid #13151C;
+            border: 2px solid #13131a;
             line-height: 1;
           }
         }

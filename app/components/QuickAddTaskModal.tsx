@@ -110,7 +110,7 @@ export default function QuickAddTaskModal({ onClose, onSave }: Props) {
           <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.15)', margin: '0 auto 16px' }} />
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#F0F2F8', fontFamily: "'Syne', sans-serif" }}>
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#F0F2F8', fontFamily: "'DM Sans', sans-serif" }}>
               New Task
             </h2>
             <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', fontSize: 20, padding: 4 }}>

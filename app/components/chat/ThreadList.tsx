@@ -161,7 +161,7 @@ export default function ThreadList() {
           </Link>
           <img src="/icons/apple-touch-icon.png" alt="" style={{ width: 32, height: 32, borderRadius: 9, display: 'block', flexShrink: 0 }} />
           <div style={{
-            fontFamily: 'Syne, sans-serif',
+            fontFamily: 'DM Sans, sans-serif',
             fontWeight: 700,
             fontSize: 18,
             color: '#F0F2F8',
@@ -175,7 +175,7 @@ export default function ThreadList() {
               background: person.gradient,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 14, fontWeight: 800, color: 'white',
-              fontFamily: 'Syne, sans-serif', flexShrink: 0,
+              fontFamily: 'DM Sans, sans-serif', flexShrink: 0,
             }}>
               {person.initial}
             </div>
@@ -220,7 +220,7 @@ export default function ThreadList() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: thread.avatarText.length > 1 ? 14 : 21,
                     fontWeight: 800, color: 'white',
-                    fontFamily: 'Syne, sans-serif',
+                    fontFamily: 'DM Sans, sans-serif',
                     overflow: 'hidden',
                   }}>
                     {thread.avatarImage
@@ -245,7 +245,7 @@ export default function ThreadList() {
                     marginBottom: 3,
                   }}>
                     <div style={{
-                      fontFamily: 'Syne, sans-serif',
+                      fontFamily: 'DM Sans, sans-serif',
                       fontWeight: 700,
                       fontSize: 15,
                       color: '#F0F2F8',

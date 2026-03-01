@@ -312,7 +312,7 @@ export default function TasksModule() {
   const completedCount = todayTasks.filter(t => isCompleted(t.id)).length
 
   return (
-    <div style={{ fontFamily: "'Syne', 'Inter', sans-serif", color: '#F1F5F9', minHeight: '100vh' }}>
+    <div style={{ fontFamily: "'DM Sans', sans-serif", color: '#F1F5F9', minHeight: '100vh' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>

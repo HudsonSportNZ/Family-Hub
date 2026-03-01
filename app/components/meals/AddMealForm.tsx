@@ -66,7 +66,7 @@ export default function AddMealForm({ initialData, onSave, onCancel, saving }: A
   const inputStyle: React.CSSProperties = {
     width: '100%', background: 'var(--card2)', border: '1px solid var(--border)',
     borderRadius: 10, padding: '8px 12px', color: 'var(--text)', fontSize: 13,
-    fontFamily: 'Inter, sans-serif', outline: 'none',
+    fontFamily: 'DM Sans, sans-serif', outline: 'none',
   }
   const labelStyle: React.CSSProperties = {
     fontSize: 10, color: 'var(--muted)', marginBottom: 5,
@@ -117,7 +117,7 @@ export default function AddMealForm({ initialData, onSave, onCancel, saving }: A
             onChange={e => setMealName(e.target.value)}
             style={{
               ...inputStyle, fontSize: 15,
-              fontFamily: 'Syne, sans-serif', fontWeight: 700, padding: '9px 12px',
+              fontFamily: 'DM Sans, sans-serif', fontWeight: 700, padding: '9px 12px',
             }}
           />
         </div>
@@ -232,7 +232,7 @@ export default function AddMealForm({ initialData, onSave, onCancel, saving }: A
           disabled={!mealName.trim() || saving}
           style={{
             flex: 2, padding: '10px', borderRadius: 12, fontSize: 13, fontWeight: 700,
-            fontFamily: 'Syne, sans-serif',
+            fontFamily: 'DM Sans, sans-serif',
             background: mealName.trim() && !saving ? 'var(--accent)' : 'rgba(108,142,255,0.3)',
             border: 'none', color: 'white',
             cursor: mealName.trim() && !saving ? 'pointer' : 'not-allowed',

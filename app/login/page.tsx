@@ -167,7 +167,7 @@ export default function LoginPage() {
           margin-bottom: 6px;
         }
         .login-logo-text {
-          font-family: 'Syne', sans-serif;
+          font-family: 'DM Sans', sans-serif;
           font-weight: 800;
           font-size: 22px;
           color: #F0F2F8;
@@ -177,7 +177,7 @@ export default function LoginPage() {
           color: rgba(240,242,248,0.35);
           margin-bottom: 44px;
           margin-top: 2px;
-          font-family: 'Inter', sans-serif;
+          font-family: 'DM Sans', sans-serif;
         }
         .avatar-grid {
           display: grid;
@@ -214,14 +214,14 @@ export default function LoginPage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          font-family: 'Syne', sans-serif;
+          font-family: 'DM Sans', sans-serif;
           font-weight: 800;
           font-size: 30px;
           color: white;
           margin-bottom: 2px;
         }
         .avatar-name {
-          font-family: 'Syne', sans-serif;
+          font-family: 'DM Sans', sans-serif;
           font-weight: 700;
           font-size: 16px;
           color: #F0F2F8;
@@ -233,7 +233,7 @@ export default function LoginPage() {
           border-radius: 20px;
           text-transform: uppercase;
           letter-spacing: 0.5px;
-          font-family: 'Inter', sans-serif;
+          font-family: 'DM Sans', sans-serif;
         }
 
         /* PIN screen */
@@ -252,7 +252,7 @@ export default function LoginPage() {
           border: none;
           color: rgba(240,242,248,0.4);
           font-size: 14px;
-          font-family: 'Inter', sans-serif;
+          font-family: 'DM Sans', sans-serif;
           cursor: pointer;
           display: flex;
           align-items: center;
@@ -268,7 +268,7 @@ export default function LoginPage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          font-family: 'Syne', sans-serif;
+          font-family: 'DM Sans', sans-serif;
           font-weight: 800;
           color: white;
           margin-bottom: 14px;
@@ -277,7 +277,7 @@ export default function LoginPage() {
           font-size: 26px;
         }
         .pin-title {
-          font-family: 'Syne', sans-serif;
+          font-family: 'DM Sans', sans-serif;
           font-weight: 700;
           font-size: 18px;
           color: #F0F2F8;
@@ -287,7 +287,7 @@ export default function LoginPage() {
           font-size: 13px;
           color: rgba(240,242,248,0.35);
           margin-bottom: 44px;
-          font-family: 'Inter', sans-serif;
+          font-family: 'DM Sans', sans-serif;
         }
         .pin-dots {
           display: flex;
@@ -316,7 +316,7 @@ export default function LoginPage() {
           background: #13151C;
           border: 1px solid rgba(255,255,255,0.07);
           border-radius: 18px;
-          font-family: 'Syne', sans-serif;
+          font-family: 'DM Sans', sans-serif;
           font-weight: 700;
           font-size: 24px;
           color: #F0F2F8;

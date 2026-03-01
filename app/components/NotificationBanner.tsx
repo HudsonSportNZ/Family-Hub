@@ -6,16 +6,17 @@ import { usePushSubscription } from '@/app/hooks/usePushSubscription'
 export default function NotificationBanner() {
   const [visible, setVisible] = useState(false)
   const [userName, setUserName] = useState('')
-  const { permission, isSubscribed, subscribe } = usePushSubscription()
+  const { subscribe } = usePushSubscription()
 
+  // Run once on mount — read all conditions synchronously from localStorage
+  // so there's no race between React state and the visibility check
   useEffect(() => {
     if (typeof window === 'undefined') return
-    // Don't show if push isn't supported
     if (!('PushManager' in window)) return
-    // Don't show if already handled
-    if (isSubscribed || permission === 'granted' || permission === 'denied') return
-    // Don't show if user already dismissed it
+    if (localStorage.getItem('pushSubscribed') === '1') return
     if (localStorage.getItem('notifDismissed') === '1') return
+    if (typeof Notification !== 'undefined' &&
+      (Notification.permission === 'granted' || Notification.permission === 'denied')) return
 
     try {
       const stored = localStorage.getItem('familyUser')
@@ -27,7 +28,7 @@ export default function NotificationBanner() {
     } catch {
       /* ignore */
     }
-  }, [permission, isSubscribed])
+  }, [])
 
   const handleEnable = async () => {
     setVisible(false)
@@ -57,13 +58,13 @@ export default function NotificationBanner() {
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{
           fontSize: 13, fontWeight: 600, color: '#F0F2F8',
-          fontFamily: 'Syne, sans-serif',
+          fontFamily: 'DM Sans, sans-serif',
         }}>
           Enable notifications
         </div>
         <div style={{
           fontSize: 11.5, color: 'rgba(240,242,248,0.48)', marginTop: 2,
-          fontFamily: 'Inter, sans-serif',
+          fontFamily: 'DM Sans, sans-serif',
         }}>
           Get notified when someone messages you
         </div>
@@ -75,7 +76,7 @@ export default function NotificationBanner() {
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
             color: 'rgba(240,242,248,0.38)', fontSize: 12,
-            padding: '4px 8px', fontFamily: 'Inter, sans-serif',
+            padding: '4px 8px', fontFamily: 'DM Sans, sans-serif',
           }}
         >
           Not now
@@ -86,7 +87,7 @@ export default function NotificationBanner() {
             background: '#6C8EFF', border: 'none', borderRadius: 9,
             padding: '7px 14px', color: 'white',
             fontSize: 13, fontWeight: 600, cursor: 'pointer',
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: 'DM Sans, sans-serif',
           }}
         >
           Enable

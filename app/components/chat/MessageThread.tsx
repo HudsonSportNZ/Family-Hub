@@ -313,7 +313,7 @@ export default function MessageThread({ threadId }: { threadId: string }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: meta.avatar.text.length > 1 ? 12 : 17,
             fontWeight: 800, color: 'white',
-            fontFamily: 'Syne, sans-serif', flexShrink: 0,
+            fontFamily: 'DM Sans, sans-serif', flexShrink: 0,
             overflow: 'hidden',
           }}>
             {meta.avatar.image
@@ -323,7 +323,7 @@ export default function MessageThread({ threadId }: { threadId: string }) {
 
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
-              fontFamily: 'Syne, sans-serif', fontWeight: 700,
+              fontFamily: 'DM Sans, sans-serif', fontWeight: 700,
               fontSize: 16, color: '#F0F2F8',
             }}>
               {meta.name}
@@ -372,7 +372,7 @@ export default function MessageThread({ threadId }: { threadId: string }) {
               <div style={{ fontSize: 56 }}>👋</div>
               <div style={{
                 color: 'rgba(240,242,248,0.45)', fontSize: 16, fontWeight: 500,
-                fontFamily: 'Syne, sans-serif',
+                fontFamily: 'DM Sans, sans-serif',
               }}>
                 Say hi!
               </div>
@@ -422,7 +422,7 @@ export default function MessageThread({ threadId }: { threadId: string }) {
                           background: showSenderAvatar ? person.gradient : 'transparent',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontSize: 11, fontWeight: 800, color: 'white',
-                          fontFamily: 'Syne, sans-serif', flexShrink: 0,
+                          fontFamily: 'DM Sans, sans-serif', flexShrink: 0,
                         }}>
                           {showSenderAvatar ? person.initial : ''}
                         </div>

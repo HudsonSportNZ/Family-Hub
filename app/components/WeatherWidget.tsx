@@ -15,26 +15,23 @@ interface OWMResponse {
 // Module-level cache — survives component remounts within the same session
 let _cache: OWMResponse | null = null
 let _cacheTs = 0
-const CACHE_TTL = 15 * 60 * 1000 // 15 minutes
+const CACHE_TTL = 15 * 60 * 1000
 const REFRESH_INTERVAL = 15 * 60 * 1000
-
 const API_URL = '/api/weather'
 
 function getWeatherInfo(id: number): { label: string; emoji: string } {
-  if (id === 800)              return { label: 'Clear Sky',     emoji: '☀️' }
-  if (id === 801)              return { label: 'Mainly Clear',  emoji: '🌤️' }
-  if (id === 802)              return { label: 'Partly Cloudy', emoji: '⛅' }
-  if (id === 803 || id === 804) return { label: 'Overcast',    emoji: '☁️' }
-  if (id >= 200 && id < 300)  return { label: 'Thunderstorm',  emoji: '⛈️' }
-  if (id >= 300 && id < 400)  return { label: 'Drizzle',       emoji: '🌦️' }
-  if (id >= 500 && id < 600)  return { label: 'Rain',          emoji: '🌧️' }
-  if (id >= 600 && id < 700)  return { label: 'Snowfall',      emoji: '❄️' }
-  if (id >= 700 && id < 800)  return { label: 'Foggy',         emoji: '🌫️' }
+  if (id === 800)               return { label: 'Clear Sky',     emoji: '☀️' }
+  if (id === 801)               return { label: 'Mainly Clear',  emoji: '🌤️' }
+  if (id === 802)               return { label: 'Partly Cloudy', emoji: '⛅' }
+  if (id === 803 || id === 804) return { label: 'Overcast',      emoji: '☁️' }
+  if (id >= 200 && id < 300)   return { label: 'Thunderstorm',  emoji: '⛈️' }
+  if (id >= 300 && id < 400)   return { label: 'Drizzle',       emoji: '🌦️' }
+  if (id >= 500 && id < 600)   return { label: 'Rain',          emoji: '🌧️' }
+  if (id >= 600 && id < 700)   return { label: 'Snowfall',      emoji: '❄️' }
+  if (id >= 700 && id < 800)   return { label: 'Foggy',         emoji: '🌫️' }
   return { label: 'Unknown', emoji: '🌡️' }
 }
 
-// Find the emoji for a time slot: match today's NZ date + target hour in hourly data.
-// Falls back to current conditions (hourly[0]) if that hour has already passed.
 function findSlotIcon(hourly: OWMResponse['hourly'], targetHour: number): string {
   const todayNZ = new Date().toLocaleDateString('en-NZ', { timeZone: 'Pacific/Auckland' })
   const match = hourly.find(h => {
@@ -52,6 +49,52 @@ function fmtAge(fetchedAt: Date): string {
   return `${mins} mins ago`
 }
 
+const WS_STYLES = `
+  .ws-strip {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 14px 12px;
+  }
+  .ws-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+  .ws-left { display: flex; align-items: baseline; gap: 10px; }
+  .ws-temp { font-size: 30px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; }
+  .ws-cond { font-size: 13px; font-weight: 500; color: var(--text); }
+  .ws-loc  { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .ws-right { text-align: right; flex-shrink: 0; }
+  .ws-hilow { font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .ws-hilow strong { color: var(--text); font-weight: 600; }
+  .ws-wind { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .ws-refresh {
+    background: none; border: none; cursor: pointer; padding: 0;
+    line-height: 1; margin-top: 4px; display: block; margin-left: auto;
+    opacity: 0.35; transition: opacity 0.2s;
+  }
+  .ws-refresh:hover { opacity: 0.7; }
+  .ws-forecast { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .ws-slot {
+    background: var(--card2);
+    border-radius: 10px;
+    padding: 10px 6px 8px;
+    text-align: center;
+  }
+  .ws-slot-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 4px;
+  }
+  .ws-slot-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+  .ws-slot-temp { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
+  .ws-age { font-size: 9px; color: rgba(255,255,255,0.22); margin-top: 8px; text-align: right; }
+  @keyframes wsSpin { to { transform: rotate(360deg); } }
+  @keyframes wsSkeleton { 0%,100%{opacity:.4} 50%{opacity:.7} }
+  .ws-skel { border-radius: 8px; background: rgba(255,255,255,0.1); animation: wsSkeleton 1.5s ease-in-out infinite; }
+`
+
 export default function WeatherWidget() {
   const [weather, setWeather]     = useState<OWMResponse | null>(_cache)
   const [loading, setLoading]     = useState(_cache === null)
@@ -62,17 +105,14 @@ export default function WeatherWidget() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const doFetch = useCallback((showSpinner = false) => {
-    // Use cache if fresh and not manually triggered
     if (!showSpinner && _cache && Date.now() - _cacheTs < CACHE_TTL) {
       setWeather(_cache)
       setLoading(false)
       return { abort: () => {} }
     }
-
-    const url = API_URL
     if (showSpinner) setSpinning(true)
     const controller = new AbortController()
-    fetch(url, { signal: controller.signal })
+    fetch(API_URL, { signal: controller.signal })
       .then(r => {
         if (!r.ok) throw new Error(`fetch failed: ${r.status}`)
         return r.json() as Promise<OWMResponse>
@@ -98,7 +138,6 @@ export default function WeatherWidget() {
     return controller
   }, [])
 
-  /* Initial fetch + 15-min auto-refresh */
   useEffect(() => {
     const controller = doFetch()
     timerRef.current = setInterval(() => doFetch(), REFRESH_INTERVAL)
@@ -108,7 +147,6 @@ export default function WeatherWidget() {
     }
   }, [doFetch])
 
-  /* Tick the "X mins ago" label every minute */
   useEffect(() => {
     if (!fetchedAt) return
     const tick = setInterval(() => setAgeLabel(fmtAge(fetchedAt)), 60000)
@@ -118,27 +156,24 @@ export default function WeatherWidget() {
   /* ── Loading skeleton ── */
   if (loading) {
     return (
-      <div className="weather-hero">
-        <style>{`
-          @keyframes wSkeleton { 0%,100%{opacity:.4} 50%{opacity:.7} }
-          .wskel { border-radius: 8px; background: rgba(255,255,255,0.1); animation: wSkeleton 1.5s ease-in-out infinite; }
-        `}</style>
-        <div className="weather-top">
-          <div>
-            <div className="wskel" style={{ width: 76, height: 52, marginBottom: 8 }} />
-            <div className="wskel" style={{ width: 120, height: 13, marginBottom: 6 }} />
-            <div className="wskel" style={{ width: 80, height: 11, marginBottom: 14 }} />
-            <div style={{ display: 'flex', gap: 16 }}>
-              <div className="wskel" style={{ width: 36, height: 30 }} />
-              <div className="wskel" style={{ width: 36, height: 30 }} />
-              <div className="wskel" style={{ width: 52, height: 30 }} />
+      <div className="ws-strip">
+        <style>{WS_STYLES}</style>
+        <div className="ws-top">
+          <div className="ws-left">
+            <div className="ws-skel" style={{ width: 64, height: 30 }} />
+            <div>
+              <div className="ws-skel" style={{ width: 90, height: 13, marginBottom: 5 }} />
+              <div className="ws-skel" style={{ width: 70, height: 11 }} />
             </div>
           </div>
-          <div className="wskel" style={{ width: 64, height: 64, borderRadius: 12 }} />
+          <div>
+            <div className="ws-skel" style={{ width: 60, height: 12, marginBottom: 5 }} />
+            <div className="ws-skel" style={{ width: 70, height: 11 }} />
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+        <div className="ws-forecast">
           {[0, 1, 2].map(i => (
-            <div key={i} className="wskel" style={{ flex: 1, height: 66, borderRadius: 12 }} />
+            <div key={i} className="ws-skel" style={{ height: 80, borderRadius: 10 }} />
           ))}
         </div>
       </div>
@@ -148,17 +183,17 @@ export default function WeatherWidget() {
   /* ── Error state ── */
   if (error || !weather) {
     return (
-      <div className="weather-hero" style={{ alignItems: 'center', justifyContent: 'center' }}>
+      <div className="ws-strip" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 100 }}>
+        <style>{WS_STYLES}</style>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 36, marginBottom: 8 }}>🌡️</div>
-          <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: 13 }}>Weather unavailable</div>
-          <div style={{ color: 'rgba(255,255,255,0.25)', fontSize: 11, marginTop: 4 }}>Check your connection</div>
+          <div style={{ fontSize: 28, marginBottom: 6 }}>🌡️</div>
+          <div style={{ color: 'var(--muted)', fontSize: 13 }}>Weather unavailable</div>
           <button
             onClick={() => doFetch(true)}
             style={{
-              marginTop: 12, padding: '6px 16px', borderRadius: 20,
-              background: 'rgba(108,142,255,0.15)', border: '1px solid rgba(108,142,255,0.3)',
-              color: '#6C8EFF', fontSize: 12, cursor: 'pointer',
+              marginTop: 10, padding: '5px 14px', borderRadius: 20,
+              background: 'rgba(96,165,250,0.12)', border: '1px solid rgba(96,165,250,0.25)',
+              color: '#60a5fa', fontSize: 12, cursor: 'pointer',
             }}
           >
             Retry
@@ -173,7 +208,7 @@ export default function WeatherWidget() {
   const temp = Math.round(current.temp)
   const high = Math.round(daily[0].temp.max)
   const low  = Math.round(daily[0].temp.min)
-  const wind = Math.round(current.wind_speed * 3.6) // m/s → km/h
+  const wind = Math.round(current.wind_speed * 3.6)
 
   const timeSlots = [
     { label: 'Morning',   temp: Math.round(daily[0].temp.morn), icon: findSlotIcon(hourly, 8)  },
@@ -182,85 +217,44 @@ export default function WeatherWidget() {
   ]
 
   return (
-    <div className="weather-hero">
-      {/* Main row */}
-      <div className="weather-top">
-        <div>
-          <div className="weather-temp">{temp}°</div>
-          <div className="weather-desc">{label}</div>
-          <div className="weather-loc">📍 Petone, NZ</div>
-          <div className="weather-stats">
-            <div>
-              <div className="wstat-val">{high}°</div>
-              <div className="wstat-lbl">High</div>
-            </div>
-            <div>
-              <div className="wstat-val">{low}°</div>
-              <div className="wstat-lbl">Low</div>
-            </div>
-            <div>
-              <div className="wstat-val">{wind} km/h</div>
-              <div className="wstat-lbl">Wind</div>
-            </div>
+    <div className="ws-strip">
+      <style>{WS_STYLES}</style>
+
+      <div className="ws-top">
+        <div className="ws-left">
+          <div className="ws-temp">{temp}°</div>
+          <div>
+            <div className="ws-cond">{emoji} {label}</div>
+            <div className="ws-loc">📍 Petone, NZ</div>
           </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-          <div className="weather-icon-big">{emoji}</div>
-          {/* Tap to refresh */}
+        <div className="ws-right">
+          <div className="ws-hilow">H <strong>{high}°</strong> · L <strong>{low}°</strong></div>
+          <div className="ws-wind">💨 {wind} km/h</div>
           <button
+            className="ws-refresh"
             onClick={() => doFetch(true)}
             title="Refresh weather"
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              padding: 0, lineHeight: 1,
-              opacity: spinning ? 1 : 0.35,
-              transition: 'opacity 0.2s',
-            }}
           >
             <span style={{
-              fontSize: 14,
-              display: 'inline-block',
-              animation: spinning ? 'wSpin 0.8s linear infinite' : 'none',
+              fontSize: 14, display: 'inline-block',
+              animation: spinning ? 'wsSpin 0.8s linear infinite' : 'none',
             }}>↻</span>
           </button>
         </div>
       </div>
 
-      {/* Time-of-day forecast */}
-      <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+      <div className="ws-forecast">
         {timeSlots.map(slot => (
-          <div
-            key={slot.label}
-            style={{
-              flex: 1,
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 12,
-              padding: '10px 0',
-              textAlign: 'center',
-            }}
-          >
-            <div style={{ fontSize: 18, lineHeight: 1, marginBottom: 5 }}>{slot.icon}</div>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, color: 'white' }}>
-              {slot.temp}°
-            </div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.3px', marginTop: 3 }}>
-              {slot.label}
-            </div>
+          <div className="ws-slot" key={slot.label}>
+            <div className="ws-slot-label">{slot.label}</div>
+            <span className="ws-slot-icon">{slot.icon}</span>
+            <div className="ws-slot-temp">{slot.temp}°</div>
           </div>
         ))}
       </div>
 
-      {/* Last updated */}
-      {ageLabel && (
-        <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.22)', marginTop: 10, textAlign: 'right' }}>
-          Updated {ageLabel}
-        </div>
-      )}
-
-      <style>{`
-        @keyframes wSpin { to { transform: rotate(360deg); } }
-      `}</style>
+      {ageLabel && <div className="ws-age">Updated {ageLabel}</div>}
     </div>
   )
 }

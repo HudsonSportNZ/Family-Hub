@@ -108,7 +108,7 @@ export default function MealsPage() {
         .meals-page {
           background: #0D0F14;
           min-height: 100dvh;
-          font-family: 'Inter', sans-serif;
+          font-family: 'DM Sans', sans-serif;
         }
         .week-tabs {
           display: flex;
@@ -132,7 +132,7 @@ export default function MealsPage() {
           border-color: rgba(108,142,255,0.3);
         }
         .week-tab-label {
-          font-family: 'Syne', sans-serif;
+          font-family: 'DM Sans', sans-serif;
           font-weight: 700;
           font-size: 13px;
           color: #F0F2F8;
@@ -174,7 +174,7 @@ export default function MealsPage() {
           </Link>
           <img src="/icons/apple-touch-icon.png" alt="" style={{ width: 32, height: 32, borderRadius: 9, display: 'block', flexShrink: 0 }} />
           <span style={{
-            fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 18,
+            fontFamily: "'DM Sans', sans-serif", fontWeight: 700, fontSize: 18,
             color: '#F0F2F8', flex: 1,
           }}>
             Meal Plan
@@ -185,7 +185,7 @@ export default function MealsPage() {
               style={{
                 background: '#6C8EFF', color: 'white', border: 'none',
                 borderRadius: 10, padding: '7px 14px', fontSize: 13, fontWeight: 700,
-                fontFamily: "'Syne', sans-serif", cursor: 'pointer',
+                fontFamily: "'DM Sans', sans-serif", cursor: 'pointer',
               }}
             >
               + Add

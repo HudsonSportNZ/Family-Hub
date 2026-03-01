@@ -139,7 +139,7 @@ export default function TodayAtSchool() {
             🏫
           </div>
           <div>
-            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 13, fontWeight: 700 }}>Today at School</div>
+            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700 }}>Today at School</div>
             <div style={{ fontSize: 10, color: 'var(--muted)', marginTop: 1 }} suppressHydrationWarning>
               {todayDayName} · Week {weekNum}
             </div>
@@ -168,7 +168,7 @@ export default function TodayAtSchool() {
             marginBottom: 10,
           }}>
             <div style={{ fontSize: 38, marginBottom: 8 }}>{weekendMsg.emoji}</div>
-            <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 15, fontWeight: 800, color: 'var(--accent)' }}>
+            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 700, color: 'var(--accent)' }}>
               {weekendMsg.text}
             </div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
@@ -188,7 +188,7 @@ export default function TodayAtSchool() {
             }}
           >
             <span style={{ fontSize: 13 }}>📅</span>
-            <span style={{ fontFamily: "'Syne', sans-serif", fontSize: 12, fontWeight: 700, color: 'var(--accent)' }}>
+            <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, fontWeight: 700, color: 'var(--accent)' }}>
               Peek at next week
             </span>
             <span style={{ fontSize: 11, color: 'var(--muted)', marginLeft: 'auto' }} suppressHydrationWarning>
@@ -215,7 +215,7 @@ export default function TodayAtSchool() {
           )}
 
           {/* Day strip */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: 12, overflowX: 'auto', scrollbarWidth: 'none', paddingBottom: 2 }}>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
             {DAYS.map((d, i) => {
               const chipDate = new Date(activeMonday)
               chipDate.setDate(chipDate.getDate() + d.offset)
@@ -225,16 +225,16 @@ export default function TodayAtSchool() {
                   key={d.key}
                   onClick={() => setSelectedIdx(i)}
                   style={{
-                    flexShrink: 0, padding: '5px 10px', borderRadius: 10,
+                    flex: 1, padding: '7px 4px', borderRadius: 10,
                     background: active ? 'rgba(108,142,255,0.15)' : 'var(--card2)',
                     border: `1px solid ${active ? 'rgba(108,142,255,0.35)' : 'var(--border)'}`,
                     color: active ? 'var(--accent)' : 'var(--muted)',
                     fontSize: 10, fontWeight: 600, cursor: 'pointer',
-                    textAlign: 'center', minWidth: 44, transition: 'all 0.2s',
+                    textAlign: 'center', transition: 'all 0.2s',
                   }}
                 >
                   <div style={{ fontSize: 9 }}>{d.abbr}</div>
-                  <div style={{ fontFamily: "'Syne', sans-serif", fontSize: 13, fontWeight: 700 }} suppressHydrationWarning>
+                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700 }} suppressHydrationWarning>
                     {chipDate.getDate()}
                   </div>
                 </div>
@@ -266,7 +266,7 @@ export default function TodayAtSchool() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                         {cfg && person ? (
                           <>
-                            <div style={{ width: 24, height: 24, borderRadius: '50%', background: cfg.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, fontFamily: "'Syne', sans-serif", flexShrink: 0 }}>
+                            <div style={{ width: 24, height: 24, borderRadius: '50%', background: cfg.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
                               {cfg.initial}
                             </div>
                             <div style={{ fontSize: 12, fontWeight: 600 }}>{person}</div>
@@ -294,7 +294,7 @@ export default function TodayAtSchool() {
                     transition: 'all 0.2s',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: kid.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 800, fontFamily: "'Syne', sans-serif", flexShrink: 0 }}>
+                      <div style={{ width: 22, height: 22, borderRadius: '50%', background: kid.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
                         {kid.initial}
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 600 }}>{kid.name}</div>

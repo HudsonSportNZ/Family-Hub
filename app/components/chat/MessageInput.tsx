@@ -119,7 +119,7 @@ export default function MessageInput({ onSend, disabled }: MessageInputProps) {
             color: '#F0F2F8',
             borderRadius: 7,
             lineHeight: 1.4,
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: 'DM Sans, sans-serif',
             letterSpacing: '0.3px',
             transition: 'background 0.2s',
           }}
@@ -148,7 +148,7 @@ export default function MessageInput({ onSend, disabled }: MessageInputProps) {
             outline: 'none',
             lineHeight: 1.45,
             overflow: 'hidden',
-            fontFamily: 'Inter, sans-serif',
+            fontFamily: 'DM Sans, sans-serif',
             minHeight: 42,
             maxHeight: 96,
             display: 'block',
