@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
 import EventModal from './EventModal'
+import QuickAddTaskModal from './QuickAddTaskModal'
 import TodayAtSchool from './school/TodayAtSchool'
 import WeatherWidget from './WeatherWidget'
 
@@ -511,6 +512,12 @@ function getDayOfYear(): number {
   return Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
 }
 
+const FAB_ACTIONS = [
+  { label: 'Add a task',         icon: '✅', bg: 'linear-gradient(135deg, #34D399, #22D3EE)', shadow: 'rgba(52,211,153,0.4)',   action: 'task'      },
+  { label: 'Add an event',       icon: '🗓', bg: 'linear-gradient(135deg, #6C8EFF, #A78BFA)', shadow: 'rgba(108,142,255,0.4)', action: 'event'     },
+  { label: 'Add a grocery item', icon: '🛒', bg: 'linear-gradient(135deg, #FBBF24, #F97316)', shadow: 'rgba(251,191,36,0.4)',  action: 'groceries' },
+]
+
 export default function Dashboard() {
   const pathname = usePathname()
   const activeNav = pathname === '/' ? 'home' : (navItems.find(i => i.href && i.href !== '/' && pathname.startsWith(i.href))?.id ?? 'home')
@@ -523,6 +530,11 @@ export default function Dashboard() {
   const [currentUser, setCurrentUser] = useState<{ name: string; role: string } | null>(null)
   const [tonightMeal, setTonightMeal] = useState<{ emoji: string; meal_name: string; cook_time?: string } | null | undefined>(undefined)
   const [quoteOpen, setQuoteOpen] = useState(false)
+  const [fabOpen, setFabOpen] = useState(false)
+  const [fabClosing, setFabClosing] = useState(false)
+  const [showFabTask, setShowFabTask] = useState(false)
+  const [showFabEvent, setShowFabEvent] = useState(false)
+  const router = useRouter()
 
   const dailyQuote = getDailyQuote()
   const quotePreview = dailyQuote.split(' ').slice(0, 3).join(' ') + '...'
@@ -549,6 +561,21 @@ export default function Dashboard() {
   const handleSwitchUser = () => {
     localStorage.removeItem('familyUser')
     window.location.href = '/login'
+  }
+
+  const openFab  = () => { setFabClosing(false); setFabOpen(true) }
+  const closeFab = () => {
+    setFabClosing(true)
+    setTimeout(() => { setFabOpen(false); setFabClosing(false) }, 150)
+  }
+  const handleFabToggle = () => { fabOpen ? closeFab() : openFab() }
+  const handleFabAction = (action: string) => {
+    closeFab()
+    setTimeout(() => {
+      if (action === 'task')      setShowFabTask(true)
+      else if (action === 'event') setShowFabEvent(true)
+      else router.push('/groceries?action=add')
+    }, 150)
   }
 
   useEffect(() => {
@@ -913,6 +940,72 @@ export default function Dashboard() {
           font-size: 10px; font-weight: 700;
           padding: 4px 12px; border-radius: 20px; margin-top: 8px;
         }
+
+        /* ── FAB ── */
+        .fab-btn {
+          display: none;
+          position: fixed; bottom: 88px; right: 20px;
+          width: 52px; height: 52px; border-radius: 50%;
+          background: linear-gradient(135deg, #6C8EFF, #A78BFA);
+          box-shadow: 0 8px 24px rgba(108,142,255,0.4);
+          z-index: 50;
+          align-items: center; justify-content: center;
+          cursor: pointer; border: none; padding: 0;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .fab-btn-icon {
+          font-size: 24px; font-weight: 300; color: white;
+          line-height: 1; display: block; user-select: none;
+          transition: transform 0.25s ease;
+        }
+        .fab-btn.open .fab-btn-icon { transform: rotate(45deg); }
+
+        .fab-backdrop {
+          display: none;
+          position: fixed; inset: 0;
+          background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
+          z-index: 40;
+          animation: fabBackdropIn 0.2s ease forwards;
+        }
+        .fab-backdrop.closing { animation: fabBackdropOut 0.15s ease forwards; }
+
+        .fab-menu {
+          display: none;
+          position: fixed; bottom: 152px; right: 20px;
+          z-index: 50;
+          flex-direction: column-reverse; gap: 10px; align-items: flex-end;
+        }
+        .fab-action {
+          display: flex; align-items: center; gap: 10px;
+          cursor: pointer; opacity: 0;
+          animation: fabActionIn 0.2s ease forwards;
+        }
+        .fab-action.closing { animation: fabActionOut 0.15s ease forwards; }
+
+        .fab-label-pill {
+          background: rgba(19,21,28,0.95);
+          border: 1px solid rgba(255,255,255,0.1);
+          backdrop-filter: blur(12px);
+          border-radius: 20px; padding: 8px 14px;
+          font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600;
+          color: #F0F2F8; white-space: nowrap;
+        }
+        .fab-icon-circle {
+          width: 44px; height: 44px; border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 18px; flex-shrink: 0;
+        }
+
+        @keyframes fabBackdropIn  { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fabBackdropOut { from { opacity: 1; } to { opacity: 0; } }
+        @keyframes fabActionIn    { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fabActionOut   { from { opacity: 1; transform: translateY(0); }   to { opacity: 0; transform: translateY(10px); } }
+
+        @media (max-width: 768px) {
+          .fab-btn      { display: flex; }
+          .fab-backdrop { display: block; }
+          .fab-menu     { display: flex; }
+        }
       `}</style>
 
       <div className="app">
@@ -1118,6 +1211,51 @@ export default function Dashboard() {
           onDelete={id => {
             setTodayEvents(prev => prev.filter(e => e.id !== id))
             setSelectedEvent(null)
+          }}
+        />
+      )}
+
+      {/* ── FAB ── */}
+      {fabOpen && (
+        <>
+          <div className={`fab-backdrop${fabClosing ? ' closing' : ''}`} onClick={closeFab} />
+          <div className="fab-menu">
+            {FAB_ACTIONS.map((action, i) => (
+              <div
+                key={i}
+                className={`fab-action${fabClosing ? ' closing' : ''}`}
+                style={!fabClosing ? { animationDelay: `${i * 60}ms` } : undefined}
+                onClick={() => handleFabAction(action.action)}
+              >
+                <div className="fab-label-pill">{action.label}</div>
+                <div className="fab-icon-circle" style={{ background: action.bg, boxShadow: `0 4px 12px ${action.shadow}` }}>
+                  {action.icon}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+      <button className={`fab-btn${fabOpen ? ' open' : ''}`} onClick={handleFabToggle} aria-label="Quick add">
+        <span className="fab-btn-icon">+</span>
+      </button>
+
+      {showFabTask && (
+        <QuickAddTaskModal
+          onClose={() => setShowFabTask(false)}
+          onSave={() => setShowFabTask(false)}
+        />
+      )}
+
+      {showFabEvent && (
+        <EventModal
+          event={null}
+          onClose={() => setShowFabEvent(false)}
+          onSave={saved => {
+            setTodayEvents(prev =>
+              [...prev, saved].sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+            )
+            setShowFabEvent(false)
           }}
         />
       )}
