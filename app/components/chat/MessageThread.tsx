@@ -1,14 +1,9 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import MessageInput from './MessageInput'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
 
 interface Message {
   id: string
@@ -84,6 +79,7 @@ export default function MessageThread({ threadId }: { threadId: string }) {
   const readMarkedRef = useRef<Set<string>>(new Set())
   // Tracks confirmed IDs so the real-time handler doesn't double-add our own sends
   const sentIdsRef = useRef<Set<string>>(new Set())
+  const hasLoaded = useRef(false)
 
   useEffect(() => {
     try {
@@ -99,7 +95,7 @@ export default function MessageThread({ threadId }: { threadId: string }) {
   // Fetch initial messages
   useEffect(() => {
     if (!threadId) return
-    setLoading(true)
+    if (!hasLoaded.current) setLoading(true)
     supabase
       .from('messages')
       .select('*')
@@ -107,8 +103,27 @@ export default function MessageThread({ threadId }: { threadId: string }) {
       .order('created_at', { ascending: true })
       .then(({ data }) => {
         setMessages((data as Message[]) ?? [])
+        hasLoaded.current = true
         setLoading(false)
       })
+  }, [threadId])
+
+  // Silent refetch when tab regains focus (handles Supabase cold start)
+  useEffect(() => {
+    const handler = () => {
+      if (document.visibilityState === 'visible') {
+        supabase
+          .from('messages')
+          .select('*')
+          .eq('thread_id', threadId)
+          .order('created_at', { ascending: true })
+          .then(({ data }) => {
+            if (data) setMessages(data as Message[])
+          })
+      }
+    }
+    document.addEventListener('visibilitychange', handler)
+    return () => document.removeEventListener('visibilitychange', handler)
   }, [threadId])
 
   // Mark messages as read
@@ -323,7 +338,7 @@ export default function MessageThread({ threadId }: { threadId: string }) {
             scrollbarWidth: 'none',
           } as React.CSSProperties}
         >
-          {loading ? (
+          {loading && messages.length === 0 ? (
             <div style={{
               display: 'flex', justifyContent: 'center', alignItems: 'center',
               flex: 1,
