@@ -158,10 +158,11 @@ export default function ThreadList() {
           }}>
             ←
           </Link>
+          <img src="/icons/apple-touch-icon.png" alt="" style={{ width: 32, height: 32, borderRadius: 9, display: 'block', flexShrink: 0 }} />
           <div style={{
             fontFamily: 'Syne, sans-serif',
-            fontWeight: 800,
-            fontSize: 22,
+            fontWeight: 700,
+            fontSize: 18,
             color: '#F0F2F8',
             flex: 1,
           }}>
@@ -169,11 +170,11 @@ export default function ThreadList() {
           </div>
           {person && (
             <div style={{
-              width: 38, height: 38, borderRadius: '50%',
+              width: 36, height: 36, borderRadius: '50%',
               background: person.gradient,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 15, fontWeight: 800, color: 'white',
-              fontFamily: 'Syne, sans-serif',
+              fontSize: 14, fontWeight: 800, color: 'white',
+              fontFamily: 'Syne, sans-serif', flexShrink: 0,
             }}>
               {person.initial}
             </div>

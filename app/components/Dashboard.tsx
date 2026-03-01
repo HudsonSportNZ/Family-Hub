@@ -115,7 +115,7 @@ function getGreeting() {
 const navItems = [
   { id: 'tasks',    icon: '✅', label: 'Tasks',    href: '/tasks'    },
   { id: 'schedule', icon: '📅', label: 'Calendar', href: '/calendar' },
-  { id: 'meals',    icon: '🍴', label: 'Food',     href: null        },
+  { id: 'groceries', icon: '🛒', label: 'List',    href: '/groceries' },
   { id: 'money',    icon: '💰', label: 'Money',    href: null        },
   { id: 'chat',     icon: '💬', label: 'Chat',     href: '/chat'     },
 ]
@@ -137,6 +137,7 @@ export default function Dashboard() {
   const [todayEvents, setTodayEvents] = useState<CalendarEvent[]>([])
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const [currentUser, setCurrentUser] = useState<{ name: string; role: string } | null>(null)
+  const [tonightMeal, setTonightMeal] = useState<{ emoji: string; meal_name: string; cook_time?: string } | null | undefined>(undefined)
 
   useEffect(() => {
     try {
@@ -165,6 +166,16 @@ export default function Dashboard() {
       setCompletions((completionData as Completion[]) ?? [])
     }
     fetchTasks()
+  }, [])
+
+  // Fetch tonight's meal
+  useEffect(() => {
+    supabase
+      .from('meal_plan')
+      .select('emoji, meal_name, cook_time')
+      .eq('meal_date', getToday())
+      .maybeSingle()
+      .then(({ data }) => setTonightMeal(data ?? null))
   }, [])
 
   // Fetch today's events (wide UTC window, filter by NZ date in JS)
@@ -569,13 +580,21 @@ export default function Dashboard() {
                 <div className="qc-sub">{doneCount} of {todayTasks.length} done</div>
                 <div className="qc-bar" style={{background:'var(--green)'}} />
               </a>
-              <div className="quick-card">
-                <div className="qc-icon">🌮</div>
+              <a href="/meals" className="quick-card">
+                <div className="qc-icon">{tonightMeal?.emoji ?? '🍽'}</div>
                 <div className="qc-label">Dinner</div>
-                <div className="qc-value">Tacos</div>
-                <div className="qc-sub">30 mins</div>
+                {tonightMeal === undefined ? (
+                  <div className="qc-value" style={{color:'var(--muted)'}}>—</div>
+                ) : tonightMeal === null ? (
+                  <div className="qc-value" style={{color:'var(--muted)', fontSize:11}}>Not planned</div>
+                ) : (
+                  <>
+                    <div className="qc-value">{tonightMeal.meal_name}</div>
+                    {tonightMeal.cook_time && <div className="qc-sub">{tonightMeal.cook_time}</div>}
+                  </>
+                )}
                 <div className="qc-bar" style={{background:'var(--pink)'}} />
-              </div>
+              </a>
               <div className="quick-card">
                 <div className="qc-icon">💬</div>
                 <div className="qc-label">Quote</div>

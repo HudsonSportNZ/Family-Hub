@@ -13,7 +13,7 @@ const supabase = createClient(
 const ALL_NAV_ITEMS = [
   { id: 'tasks',    icon: '✅', label: 'Tasks',    href: '/tasks'    },
   { id: 'schedule', icon: '📅', label: 'Calendar', href: '/calendar' },
-  { id: 'meals',    icon: '🍴', label: 'Food',     href: null        },
+  { id: 'groceries', icon: '🛒', label: 'List',    href: '/groceries' },
   { id: 'money',    icon: '💰', label: 'Money',    href: null        },
   { id: 'chat',     icon: '💬', label: 'Chat',     href: '/chat'     },
 ]
