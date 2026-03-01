@@ -44,7 +44,9 @@ export default function CalendarPage() {
         </span>
       </div>
 
-      <CalendarModule />
+      <div style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
+        <CalendarModule />
+      </div>
     </div>
   )
 }

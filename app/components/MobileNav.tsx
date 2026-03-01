@@ -34,10 +34,18 @@ export default function MobileNav() {
   useEffect(() => {
     if (!currentUser) return
 
+    const ALL_NAMES = ['Mum', 'Dad', 'Isabel', 'James']
+    const others = ALL_NAMES.filter(n => n !== currentUser.name)
+    const threadIds = [
+      'family',
+      ...others.map(n => [currentUser.name, n].map(x => x.toLowerCase()).sort().join('-')),
+    ]
+
     const fetchUnread = async () => {
       const { count } = await supabase
         .from('messages')
         .select('*', { count: 'exact', head: true })
+        .in('thread_id', threadIds)
         .neq('sender', currentUser.name)
         .not('read_by', 'cs', `{${currentUser.name}}`)
       setChatUnread(count ?? 0)
