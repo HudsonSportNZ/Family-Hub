@@ -841,7 +841,7 @@ export default function Dashboard() {
           --red: #f87171;
           --pink: #f472b6;
           --cyan: #22d3ee;
-          --bottom-bar: 64px;
+          --bottom-bar: 56px;
         }
 
         html, body {
@@ -899,9 +899,9 @@ export default function Dashboard() {
           .dash-header { padding-top: max(28px, env(safe-area-inset-top)); }
         }
         .profile-row { display: flex; justify-content: space-between; align-items: flex-start; }
-        .greeting-date { font-size: 12px; color: var(--muted); font-weight: 400; margin-bottom: 4px; }
-        .greeting-good { font-size: 20px; font-weight: 300; color: rgba(240,238,232,0.55); line-height: 1.2; }
-        .greeting-name { font-size: 34px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; }
+        .greeting-date { font-size: 13px; color: var(--muted); font-weight: 400; margin-bottom: 4px; }
+        .greeting-good { font-size: 21px; font-weight: 300; color: rgba(240,238,232,0.55); line-height: 1.2; }
+        .greeting-name { font-size: 36px; font-weight: 700; line-height: 1.1; letter-spacing: -0.02em; }
         .profile-avatar {
           width: 44px; height: 44px; border-radius: 50%;
           display: flex; align-items: center; justify-content: center;
@@ -921,7 +921,7 @@ export default function Dashboard() {
         .dash-scroll {
           flex: 1; overflow-y: auto; overflow-x: hidden;
           padding: 0 16px;
-          padding-bottom: calc(var(--bottom-bar) + 20px + env(safe-area-inset-bottom));
+          padding-bottom: calc(var(--bottom-bar) + 12px + env(safe-area-inset-bottom));
           display: flex; flex-direction: column; gap: 10px;
           -webkit-overflow-scrolling: touch; scrollbar-width: none;
         }
@@ -940,9 +940,9 @@ export default function Dashboard() {
           to   { opacity: 1; transform: translateY(0); }
         }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .card-title { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
-        .card-link { font-size: 12px; font-weight: 500; color: var(--accent); text-decoration: none; }
-        .eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px; }
+        .card-title { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+        .card-link { font-size: 13px; font-weight: 500; color: var(--accent); text-decoration: none; }
+        .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 12px; }
 
         /* ── WHAT'S ON TODAY ── */
         .whatson-card {
@@ -957,13 +957,13 @@ export default function Dashboard() {
         .event-row:first-of-type { padding-top: 0; }
         .event-row:last-of-type  { border-bottom: none; padding-bottom: 0; }
         .e-time { min-width: 40px; text-align: right; flex-shrink: 0; }
-        .e-time .t  { font-size: 13px; font-weight: 700; line-height: 1.2; }
-        .e-time .ap { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; }
-        .e-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .e-time .t  { font-size: 14px; font-weight: 700; line-height: 1.2; }
+        .e-time .ap { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; }
+        .e-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
         .e-info { flex: 1; min-width: 0; }
-        .e-title { font-size: 14px; font-weight: 600; line-height: 1.3; }
-        .e-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
-        .e-chip { border-radius: 100px; padding: 3px 9px; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+        .e-title { font-size: 15px; font-weight: 600; line-height: 1.3; }
+        .e-sub { font-size: 13px; color: var(--muted); margin-top: 1px; }
+        .e-chip { border-radius: 100px; padding: 3px 10px; font-size: 12px; font-weight: 700; flex-shrink: 0; }
         .chip-done  { background: rgba(74,222,128,0.12);  color: var(--green); }
         .chip-next  { background: rgba(96,165,250,0.15);  color: var(--accent); }
         .chip-later { background: rgba(255,255,255,0.06); color: var(--muted); }
@@ -977,28 +977,28 @@ export default function Dashboard() {
         .task-row:first-of-type { padding-top: 0; }
         .task-row:last-of-type  { border-bottom: none; padding-bottom: 0; }
         .t-check {
-          width: 20px; height: 20px; border-radius: 50%;
+          width: 22px; height: 22px; border-radius: 50%;
           border: 2px solid var(--faint); flex-shrink: 0;
           display: flex; align-items: center; justify-content: center;
-          font-size: 10px; font-weight: 700;
+          font-size: 11px; font-weight: 700;
         }
         .t-check.done { background: var(--green); border-color: var(--green); color: #0a0a0f; }
-        .t-text { font-size: 14px; font-weight: 500; color: var(--text); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .t-text { font-size: 15px; font-weight: 500; color: var(--text); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .t-text.x { text-decoration: line-through; color: var(--muted); font-weight: 400; }
 
         /* ── QUOTE CARD ── */
         .quote-card { background: var(--card2); text-align: center; padding: 22px 18px; cursor: pointer; }
         .q-mark { font-size: 48px; font-weight: 700; line-height: 0.6; color: rgba(167,139,250,0.22); display: block; margin-bottom: 12px; letter-spacing: -0.05em; }
-        .q-text { font-size: 16px; font-weight: 400; font-style: italic; line-height: 1.55; margin-bottom: 10px; }
-        .q-author { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+        .q-text { font-size: 17px; font-weight: 400; font-style: italic; line-height: 1.55; margin-bottom: 10px; }
+        .q-author { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
 
         /* ── MOBILE ── */
         @media (max-width: 768px) {
           html, body { overflow: hidden; }
           .sidebar { display: none; }
           .app { flex-direction: column; }
-          .greeting-name { font-size: 28px; }
-          .greeting-good { font-size: 17px; }
+          .greeting-name { font-size: 32px; }
+          .greeting-good { font-size: 19px; }
         }
 
         /* ── QUOTE MODAL ── */

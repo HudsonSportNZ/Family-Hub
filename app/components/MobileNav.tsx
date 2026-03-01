@@ -88,7 +88,7 @@ export default function MobileNav() {
             bottom: 0;
             left: 0;
             right: 0;
-            height: calc(64px + env(safe-area-inset-bottom));
+            height: calc(56px + env(safe-area-inset-bottom));
             background: #13131a;
             border-top: 1px solid rgba(255,255,255,0.06);
             z-index: 100;
