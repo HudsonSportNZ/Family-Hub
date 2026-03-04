@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@supabase/supabase-js'
@@ -22,6 +22,29 @@ export default function MobileNav() {
   const pathname = usePathname()
   const [currentUser, setCurrentUser] = useState<{ name: string; role: string } | null>(null)
   const [chatUnread, setChatUnread] = useState(0)
+  const navRef = useRef<HTMLElement>(null)
+
+  // iOS PWA: use visualViewport API to keep nav pinned at the true visual bottom.
+  // Without this, the keyboard displaces position:fixed elements in PWA mode and
+  // the nav stays "stuck" at the keyboard-offset position after navigating away.
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const reposition = () => {
+      const el = navRef.current
+      if (!el) return
+      // How many px the keyboard has consumed from the bottom of the layout viewport
+      const keyboardOffset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+      el.style.transform = `translate3d(0, ${-keyboardOffset}px, 0)`
+    }
+    reposition()
+    vv.addEventListener('resize', reposition)
+    vv.addEventListener('scroll', reposition)
+    return () => {
+      vv.removeEventListener('resize', reposition)
+      vv.removeEventListener('scroll', reposition)
+    }
+  }, [])
 
   useEffect(() => {
     try {
@@ -169,7 +192,7 @@ export default function MobileNav() {
         }
       `}</style>
 
-      <nav className="mobile-bottom-bar">
+      <nav ref={navRef} className="mobile-bottom-bar">
         {navItems.map(item => {
           const isActive = activeId === item.id
           const showBadge = item.id === 'chat' && chatUnread > 0

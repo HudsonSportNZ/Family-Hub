@@ -76,6 +76,7 @@ export default function MessageThread({ threadId }: { threadId: string }) {
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
   const readMarkedRef = useRef<Set<string>>(new Set())
   // Tracks confirmed IDs so the real-time handler doesn't double-add our own sends
   const sentIdsRef = useRef<Set<string>>(new Set())
@@ -178,10 +179,13 @@ export default function MessageThread({ threadId }: { threadId: string }) {
     return () => { supabase.removeChannel(channel) }
   }, [threadId, scrollToBottom])
 
-  // Scroll to bottom when messages first load
+  // Scroll to bottom when messages first load — instant jump, no animation
   useEffect(() => {
-    if (!loading) setTimeout(scrollToBottom, 100)
-  }, [loading, scrollToBottom])
+    if (!loading) {
+      const el = messagesContainerRef.current
+      if (el) el.scrollTop = el.scrollHeight
+    }
+  }, [loading])
 
   const handleSend = async (content: string, type: 'text' | 'gif') => {
     if (!currentUser) return
@@ -345,6 +349,7 @@ export default function MessageThread({ threadId }: { threadId: string }) {
 
         {/* ── MESSAGES ── */}
         <div
+          ref={messagesContainerRef}
           className="msg-area"
           style={{
             flex: 1,
