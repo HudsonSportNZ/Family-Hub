@@ -8,6 +8,7 @@ import EventModal from './EventModal'
 import QuickAddTaskModal from './QuickAddTaskModal'
 import TodayAtSchool from './school/TodayAtSchool'
 import WeatherWidget from './WeatherWidget'
+import DailyBriefModal from './DailyBrief/DailyBriefModal'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -580,6 +581,16 @@ export default function Dashboard() {
   const pathname = usePathname()
   const activeNav = pathname === '/' ? 'home' : (navItems.find(i => i.href && i.href !== '/' && pathname.startsWith(i.href))?.id ?? 'home')
 
+  const [showBrief, setShowBrief] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    try {
+      const stored = localStorage.getItem('familyUser')
+      if (!stored) return false
+      const user = JSON.parse(stored)
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Pacific/Auckland' })
+      return !localStorage.getItem(`brief_dismissed_${user.name}_${today}`)
+    } catch { return false }
+  })
   const [tasks, setTasks] = useState<Task[]>([])
   const [completions, setCompletions] = useState<Completion[]>([])
   const [activeMember, setActiveMember] = useState('M')
@@ -821,6 +832,9 @@ export default function Dashboard() {
 
   return (
     <>
+      {showBrief && (
+        <DailyBriefModal onDismiss={() => setShowBrief(false)} />
+      )}
       <style>{`
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
