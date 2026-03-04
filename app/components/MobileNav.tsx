@@ -96,6 +96,10 @@ export default function MobileNav() {
             justify-content: space-around;
             padding: 0 6px;
             padding-bottom: env(safe-area-inset-bottom);
+            /* iOS Safari: force GPU compositing layer so the nav stays
+               pinned at bottom: 0 and isn't displaced by keyboard interactions */
+            transform: translate3d(0, 0, 0);
+            -webkit-transform: translate3d(0, 0, 0);
           }
 
           .mobile-bottom-nav-item {

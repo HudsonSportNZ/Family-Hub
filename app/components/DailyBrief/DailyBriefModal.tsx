@@ -412,7 +412,6 @@ export default function DailyBriefModal({ onDismiss }: Props) {
           alignItems: 'flex-end',
           justifyContent: 'center',
           zIndex: 200,
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
           animation: dismissing
             ? 'briefOverlayOut 0.4s ease forwards'
             : 'briefOverlayIn 0.4s ease both',
@@ -424,7 +423,7 @@ export default function DailyBriefModal({ onDismiss }: Props) {
             position: 'relative',
             width: '100%',
             maxWidth: 390,
-            maxHeight: '92vh',
+            maxHeight: '92dvh',
             background: '#11111c',
             borderRadius: '28px 28px 0 0',
             borderTop: '1px solid rgba(255,255,255,0.1)',

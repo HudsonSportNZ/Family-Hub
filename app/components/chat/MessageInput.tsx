@@ -134,6 +134,11 @@ export default function MessageInput({ onSend, disabled }: MessageInputProps) {
           onChange={handleTextChange}
           onKeyDown={handleKeyDown}
           onFocus={() => { setShowEmoji(false); setShowGif(false) }}
+          onBlur={() => {
+            // iOS Safari: when keyboard closes, fixed elements can be stuck at
+            // the keyboard-offset position. Resetting scroll re-anchors them.
+            requestAnimationFrame(() => window.scrollTo(0, 0))
+          }}
           placeholder="Message..."
           rows={1}
           style={{
