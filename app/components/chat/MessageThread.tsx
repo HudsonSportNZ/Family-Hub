@@ -179,11 +179,15 @@ export default function MessageThread({ threadId }: { threadId: string }) {
     return () => { supabase.removeChannel(channel) }
   }, [threadId, scrollToBottom])
 
-  // Scroll to bottom when messages first load — instant jump, no animation
+  // Scroll to bottom when messages first load — instant jump, no animation.
+  // Delay 80ms so React finishes painting all message nodes before we measure scrollHeight.
   useEffect(() => {
     if (!loading) {
-      const el = messagesContainerRef.current
-      if (el) el.scrollTop = el.scrollHeight
+      const t = setTimeout(() => {
+        const el = messagesContainerRef.current
+        if (el) el.scrollTop = el.scrollHeight
+      }, 80)
+      return () => clearTimeout(t)
     }
   }, [loading])
 

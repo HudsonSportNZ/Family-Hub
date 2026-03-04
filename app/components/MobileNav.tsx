@@ -23,28 +23,53 @@ export default function MobileNav() {
   const [currentUser, setCurrentUser] = useState<{ name: string; role: string } | null>(null)
   const [chatUnread, setChatUnread] = useState(0)
   const navRef = useRef<HTMLElement>(null)
+  // Track the largest innerHeight we've ever seen — that's the "real" full screen
+  // height with no keyboard. iOS PWA shrinks BOTH innerHeight AND visualViewport.height
+  // together when the keyboard opens, so we can't detect keyboard state by comparing
+  // them. Instead we compare against the historically-maximum height.
+  const fullHeightRef = useRef(typeof window !== 'undefined' ? window.innerHeight : 932)
 
-  // iOS PWA: use visualViewport API to keep nav pinned at the true visual bottom.
-  // Without this, the keyboard displaces position:fixed elements in PWA mode and
-  // the nav stays "stuck" at the keyboard-offset position after navigating away.
   useEffect(() => {
-    const vv = window.visualViewport
-    if (!vv) return
     const reposition = () => {
+      // Update our baseline whenever we see a larger height (keyboard has closed)
+      if (window.innerHeight > fullHeightRef.current) {
+        fullHeightRef.current = window.innerHeight
+      }
       const el = navRef.current
       if (!el) return
-      // How many px the keyboard has consumed from the bottom of the layout viewport
-      const keyboardOffset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
-      el.style.transform = `translate3d(0, ${-keyboardOffset}px, 0)`
+      // How far the current viewport is below the full-screen height.
+      // Positive = viewport is shrunk (post-keyboard), so push nav DOWN by that amount
+      // so it sits at the physical screen bottom rather than the shrunken viewport bottom.
+      const displacement = Math.max(0, fullHeightRef.current - window.innerHeight)
+      el.style.transform = `translate3d(0, ${displacement}px, 0)`
     }
+
     reposition()
-    vv.addEventListener('resize', reposition)
-    vv.addEventListener('scroll', reposition)
+    window.addEventListener('resize', reposition)
+    window.visualViewport?.addEventListener('resize', reposition)
     return () => {
-      vv.removeEventListener('resize', reposition)
-      vv.removeEventListener('scroll', reposition)
+      window.removeEventListener('resize', reposition)
+      window.visualViewport?.removeEventListener('resize', reposition)
     }
   }, [])
+
+  // Poll briefly after every route change — iOS takes a few frames to restore
+  // window.innerHeight after the keyboard closes on navigation.
+  useEffect(() => {
+    let count = 0
+    const poll = setInterval(() => {
+      if (window.innerHeight > fullHeightRef.current) {
+        fullHeightRef.current = window.innerHeight
+      }
+      const el = navRef.current
+      if (el) {
+        const displacement = Math.max(0, fullHeightRef.current - window.innerHeight)
+        el.style.transform = `translate3d(0, ${displacement}px, 0)`
+      }
+      if (++count >= 15) clearInterval(poll) // poll for 1.5s
+    }, 100)
+    return () => clearInterval(poll)
+  }, [pathname])
 
   useEffect(() => {
     try {
